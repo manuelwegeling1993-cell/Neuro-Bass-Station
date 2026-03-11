@@ -1,0 +1,3033 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neurofunk Bassline Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap');
+
+        :root {
+            --bg: #080b0f;
+            --panel: #0d1218;
+            --border: #1a2530;
+            --accent: #00a8bb;
+            --accent2: #bb2e52;
+            --accent3: #52bb00;
+            --gold: #c07c00;
+            --purple: #9050e0;
+            --dim: #1e3040;
+            --text: #7090a8;
+            --bright: #a8c8de;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.06) 2px, rgba(0, 0, 0, 0.06) 4px);
+        }
+
+        /* ── HEADER ─────────────────────────────────────────────── */
+        header {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-top {
+            padding: 22px 50px 12px;
+            display: flex;
+            align-items: baseline;
+            gap: 25px;
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            color: var(--bright);
+            letter-spacing: .15em;
+        }
+
+        .subtitle {
+            font-size: .81rem;
+            color: #5a7a90;
+            letter-spacing: .1em;
+        }
+
+        /* ── GLOBAL BAR ──────────────────────────────────────────── */
+        .global-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            padding: 9px 50px 10px;
+            background: rgba(0, 0, 0, .35);
+            border-bottom: 1px solid var(--border);
+            font-size: .81rem;
+        }
+
+        .global-bar .g-label {
+            color: #4a7090;
+            font-size: .77rem;
+            letter-spacing: .08em;
+            white-space: nowrap;
+        }
+
+        .pitch-display {
+            color: var(--accent);
+            font-size: .85rem;
+            min-width: 52px;
+            text-align: center;
+        }
+
+        .filter-val {
+            color: var(--accent);
+            font-size: .81rem;
+            min-width: 62px;
+        }
+
+        .g-sep {
+            width: 1px;
+            height: 17px;
+            background: var(--border);
+            flex-shrink: 0;
+        }
+
+        .wave-btn {
+            background: transparent;
+            border: 1px solid #2a4858;
+            color: #5a8098;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .75rem;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 2px;
+            letter-spacing: .07em;
+            transition: all .12s;
+        }
+
+        .wave-btn.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(0, 168, 187, .07);
+        }
+
+        .wave-btn:hover {
+            border-color: var(--text);
+            color: var(--text);
+        }
+
+        /* ── TABS ────────────────────────────────────────────────── */
+        .tabs {
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0, 0, 0, .2);
+        }
+
+        .tabs::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .tabs::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+
+        .tab-btn {
+            flex-shrink: 0;
+            padding: 12px 22px;
+            background: transparent;
+            border: none;
+            color: #4a6878;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .81rem;
+            letter-spacing: .08em;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all .15s;
+            white-space: nowrap;
+        }
+
+        .tab-btn .vol-num {
+            color: #2a4858;
+            font-size: .77rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, .02);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-btn.active .vol-num {
+            color: var(--accent);
+            opacity: .6;
+        }
+
+        .tab-btn.r-tab.active {
+            color: var(--accent2);
+            border-bottom-color: var(--accent2);
+        }
+
+        .tab-btn.r-tab.active .vol-num {
+            color: var(--accent2);
+            opacity: .6;
+        }
+
+        .tab-btn.bk-tab.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+        }
+
+        .tab-btn.co-tab.active {
+            color: #c8a000;
+            border-bottom-color: #c8a000;
+        }
+
+        /* ── TAB PAGES ───────────────────────────────────────────── */
+        .tab-page {
+            display: none;
+        }
+
+        .tab-page.active {
+            display: block;
+        }
+
+        /* ── GRIDS (Max 5 Rows bound via 4 columns logic) ────────── */
+        .pitch-grid,
+        .rhythm-grid,
+        .breaks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(425px, 1fr));
+            gap: 1px;
+            background: var(--border);
+        }
+
+        @media(min-width: 1200px) {
+
+            .pitch-grid,
+            .rhythm-grid,
+            .breaks-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* ── CARDS ───────────────────────────────────────────────── */
+        .card,
+        .rcard,
+        .break-card {
+            background: var(--panel);
+            padding: 20px 22px 15px;
+            cursor: pointer;
+            transition: background .12s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::after,
+        .rcard::after,
+        .break-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .2s;
+        }
+
+        .card::after {
+            background: radial-gradient(ellipse at 50% 0%, rgba(0, 168, 187, .04), transparent 70%);
+        }
+
+        .rcard::after {
+            background: radial-gradient(ellipse at 50% 0%, rgba(187, 46, 82, .04), transparent 70%);
+        }
+
+        .break-card::after {
+            background: radial-gradient(ellipse at 50% 0%, rgba(192, 124, 0, .05), transparent 70%);
+        }
+
+        .card:hover,
+        .rcard:hover,
+        .break-card:hover {
+            background: #101820;
+        }
+
+        .card:hover::after,
+        .card.playing::after,
+        .rcard:hover::after,
+        .rcard.playing::after,
+        .break-card:hover::after,
+        .break-card.playing::after {
+            opacity: 1;
+        }
+
+        .card.playing {
+            background: #0a1520;
+        }
+
+        .rcard.playing {
+            background: #150a10;
+        }
+
+        .break-card.playing {
+            background: #110c08;
+        }
+
+        .card-header,
+        .rcard-header,
+        .break-hdr {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 11px;
+        }
+
+        .card-num,
+        .rcard-num {
+            font-size: .77rem;
+            color: #4a7090;
+            min-width: 28px;
+        }
+
+        .card-title,
+        .rcard-title,
+        .break-name {
+            font-size: .9rem;
+            color: var(--bright);
+            letter-spacing: .05em;
+            flex: 1;
+        }
+
+        .break-orig {
+            font-size: .75rem;
+            color: #4a7090;
+        }
+
+        .tag,
+        .rtag,
+        .break-bpm-tag {
+            font-size: .66rem;
+            padding: 3px 6px;
+            border: 1px solid;
+            letter-spacing: .08em;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .tag.call {
+            color: #008fa0;
+            border-color: rgba(0, 143, 160, .35);
+        }
+
+        .tag.resp {
+            color: #a02848;
+            border-color: rgba(160, 40, 72, .35);
+        }
+
+        .tag.loop {
+            color: #48a000;
+            border-color: rgba(72, 160, 0, .35);
+        }
+
+        .tag.sweep {
+            color: #a06800;
+            border-color: rgba(160, 104, 0, .35);
+        }
+
+        .tag.fill {
+            color: #0088a0;
+            border-color: rgba(0, 136, 160, .35);
+        }
+
+        .rtag.sub {
+            color: #7840d0;
+            border-color: rgba(120, 64, 208, .35);
+        }
+
+        .rtag.stab {
+            color: #a02848;
+            border-color: rgba(160, 40, 72, .35);
+        }
+
+        .rtag.swing {
+            color: #a06800;
+            border-color: rgba(160, 104, 0, .35);
+        }
+
+        .rtag.break {
+            color: #48a000;
+            border-color: rgba(72, 160, 0, .35);
+        }
+
+        .rtag.fill {
+            color: #0088a0;
+            border-color: rgba(0, 136, 160, .35);
+        }
+
+        .rtag.loop {
+            color: #48a000;
+            border-color: rgba(72, 160, 0, .35);
+        }
+
+        .rtag.poly {
+            color: #a05800;
+            border-color: rgba(160, 88, 0, .35);
+        }
+
+        .rtag.tri {
+            color: #a03098;
+            border-color: rgba(160, 48, 152, .35);
+        }
+
+        .rtag.mech {
+            color: #e05020;
+            border-color: rgba(224, 80, 32, .4);
+        }
+
+        .break-bpm-tag {
+            border-color: rgba(192, 124, 0, .4);
+            color: var(--gold);
+        }
+
+        canvas.waveform,
+        canvas.rwave,
+        canvas.break-canvas {
+            width: 100%;
+            height: 82px;
+            display: block;
+            border: 1px solid var(--dim);
+            background: #050a0e;
+            border-radius: 2px;
+        }
+
+        .card-desc,
+        .rcard-desc,
+        .break-desc {
+            margin-top: 9px;
+            font-size: .77rem;
+            color: #5080a0;
+            line-height: 1.55;
+            letter-spacing: .03em;
+        }
+
+        .play-indicator,
+        .rplay-indicator,
+        .break-play-ind {
+            position: absolute;
+            top: 12px;
+            right: 15px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity .1s;
+        }
+
+        .play-indicator {
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+        }
+
+        .rplay-indicator {
+            background: var(--accent2);
+            box-shadow: 0 0 6px var(--accent2);
+        }
+
+        .break-play-ind {
+            background: var(--gold);
+            box-shadow: 0 0 6px var(--gold);
+        }
+
+        .card.playing .play-indicator,
+        .rcard.playing .rplay-indicator,
+        .break-card.playing .break-play-ind {
+            opacity: 1;
+            animation: blink .8s infinite;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: .3;
+            }
+        }
+
+        .progress-bar,
+        .rprogress-bar,
+        .break-prog {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            width: 0%;
+            transition: width linear;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+        }
+
+        .rprogress-bar {
+            background: linear-gradient(90deg, var(--accent2), var(--purple));
+        }
+
+        .break-prog {
+            background: linear-gradient(90deg, var(--gold), #e05020);
+        }
+
+        /* ── BREAKS PAGE HEADER ──────────────────────────────────── */
+        .breaks-page-header {
+            padding: 20px 35px 15px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: baseline;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .breaks-title {
+            font-size: .9rem;
+            color: var(--bright);
+            letter-spacing: .15em;
+        }
+
+        .breaks-sub {
+            font-size: .77rem;
+            color: #4a7090;
+            letter-spacing: .05em;
+        }
+
+        /* ── COMBINE PAGE ────────────────────────────────────────── */
+        .combine-layout {
+            display: flex;
+            flex-direction: column;
+            background: var(--border);
+            gap: 1px;
+        }
+
+        .combine-selectors {
+            display: flex;
+            justify-content: space-between;
+            background: var(--bg);
+            flex-shrink: 0;
+        }
+
+        .combine-col {
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            width: 25%;
+            max-height: 540px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+            border: 1px solid var(--border);
+        }
+
+        .combine-col-header {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            padding: 12px 20px 10px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--bg);
+        }
+
+        .combine-col-title {
+            font-size: .81rem;
+            color: var(--bright);
+            letter-spacing: .1em;
+        }
+
+        .combine-col-sub {
+            font-size: .75rem;
+            color: #4a7090;
+        }
+
+        .combine-search-wrap {
+            padding: 8px 15px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            position: sticky;
+            top: 47px;
+            /* height of header */
+            z-index: 2;
+            background: var(--bg);
+        }
+
+        .combine-search {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .72rem;
+            padding: 6px 10px;
+            outline: none;
+            border-radius: 2px;
+            transition: border-color .15s;
+        }
+
+        .combine-search:focus {
+            border-color: var(--accent);
+        }
+
+        .combine-search::placeholder {
+            color: var(--dim);
+        }
+
+        .combine-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .combine-list .card,
+        .combine-list .rcard,
+        .combine-list .break-card {
+            border: 1px solid var(--border);
+            border-radius: 2px;
+        }
+
+        .combine-list .card.combine-selected,
+        .combine-list .rcard.combine-selected,
+        .combine-list .break-card.combine-selected {
+            background: #0a1520;
+            border-color: #c07c00;
+            border-left-width: 4px;
+        }
+
+        .combine-centre {
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            padding: 17px 25px;
+            gap: 15px;
+        }
+
+        .combine-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .combine-active-labels {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .cal-block {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .cal-label {
+            font-size: .72rem;
+            color: #4a7090;
+            letter-spacing: .1em;
+        }
+
+        .cal-name {
+            font-size: .77rem;
+            color: #3a5a70;
+            transition: color .2s;
+        }
+
+        .cal-block.has-selection .cal-name {
+            color: #c07c00;
+        }
+
+        .cal-plus {
+            font-size: 1.25rem;
+            color: var(--dim);
+            padding: 0 5px;
+        }
+
+        .combine-btns {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--dim);
+            color: #3a5a70;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .72rem;
+            padding: 6px 15px;
+            cursor: pointer;
+            letter-spacing: .08em;
+            border-radius: 2px;
+            transition: all .12s;
+        }
+
+        .btn:hover {
+            border-color: var(--text);
+            color: var(--text);
+        }
+
+        .btn.active-loop {
+            border-color: #c8a000;
+            color: #c8a000;
+            background: rgba(200, 160, 0, .06);
+        }
+
+        .btn.playing {
+            border-color: #40c040;
+            color: #40c040;
+            background: rgba(64, 192, 64, .06);
+        }
+
+        .export-btn {
+            border-color: #1a3848 !important;
+            color: #2a5060 !important;
+        }
+
+        .export-btn:not(:disabled):hover {
+            border-color: var(--accent) !important;
+            color: var(--accent) !important;
+        }
+
+        .export-btn:disabled {
+            opacity: .25;
+            cursor: not-allowed;
+        }
+
+        .combine-result-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .combine-canvas-wrap {
+            position: relative;
+            overflow: hidden;
+            border-radius: 2px;
+            border: 1px solid var(--dim);
+            width: 50%;
+        }
+
+        #combine-canvas {
+            width: 100%;
+            height: 200px;
+            display: block;
+            background: #050a0e;
+        }
+
+        #combine-rhythm-canvas {
+            width: 50%;
+            height: 60px;
+            display: block;
+            background: #050a0e;
+            border: 1px solid var(--dim);
+            border-radius: 2px;
+        }
+
+        .combine-canvas-empty {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .75rem;
+            color: var(--dim);
+            letter-spacing: .08em;
+            pointer-events: none;
+            text-align: center;
+            padding: 25px;
+        }
+
+        .playhead {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(192, 124, 0, .7);
+            pointer-events: none;
+            transform: translateX(0);
+        }
+
+        .combine-legend {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            font-size: .67rem;
+            color: var(--dim);
+            letter-spacing: .06em;
+        }
+
+        .cleg {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cleg-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .cleg-note {
+            margin-left: auto;
+            font-size: .75rem;
+            color: #3a6080;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        /* ── NUDGE ───────────────────────────────────────────────── */
+        .nudge-val {
+            color: var(--accent);
+            font-size: .81rem;
+            min-width: 68px;
+            text-align: center;
+        }
+
+        .nudge-val.rush {
+            color: #bb2e52;
+        }
+
+        .nudge-val.late {
+            color: #52bb00;
+        }
+
+        /* ── DICE BUTTONS ────────────────────────────────────────── */
+        .dice-btn {
+            background: transparent;
+            border: 1px solid #2a4858;
+            color: #4a7090;
+            font-size: .72rem;
+            padding: 4px 9px;
+            cursor: pointer;
+            border-radius: 2px;
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: .06em;
+            transition: all .12s;
+            flex-shrink: 0;
+        }
+
+        .dice-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .dice-btn.rolling {
+            animation: spin .25s ease-out;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg) scale(1);
+            }
+
+            50% {
+                transform: rotate(180deg) scale(1.3);
+            }
+
+            100% {
+                transform: rotate(360deg) scale(1);
+            }
+        }
+
+        /* ── COMBINE TOP DICE BAR ────────────────────────────────── */
+        .combine-dice-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(0, 0, 0, .25);
+            flex-shrink: 0;
+        }
+
+        .combine-dice-label {
+            font-size: .75rem;
+            color: #4a7090;
+            letter-spacing: .1em;
+        }
+
+        .dice-global-btn {
+            background: transparent;
+            border: 1px solid #3a5870;
+            color: #6090a8;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .75rem;
+            padding: 6px 16px;
+            cursor: pointer;
+            border-radius: 2px;
+            letter-spacing: .08em;
+            transition: all .15s;
+        }
+
+        .dice-global-btn:hover {
+            border-color: #c07c00;
+            color: #c07c00;
+            background: rgba(192, 124, 0, .06);
+        }
+
+        .dice-global-btn.rolling {
+            animation: spin .3s ease-out;
+        }
+
+        /* ── VOL DIVIDER (merged melody/rhythm tabs) ────────────────── */
+        .vol-divider {
+            grid-column: 1 / -1;
+            padding: 14px 18px 10px;
+            margin-top: 8px;
+            font-size: .72rem;
+            color: #3a7090;
+            letter-spacing: .18em;
+            border-top: 1px solid #0e2230;
+            background: rgba(0, 15, 28, 0.5);
+        }
+
+        .vol-divider:first-child {
+            margin-top: 0;
+            border-top: none;
+        }
+
+        /* ── TAB SEARCH BAR (sticky inside merged tabs) ───────────── */
+        .tab-search-bar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            padding: 10px 20px;
+            background: rgba(4, 12, 20, .96);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(4px);
+        }
+
+        .tab-search {
+            background: rgba(0, 20, 38, .7);
+            border: 1px solid #1a3848;
+            color: var(--fg);
+            padding: 7px 12px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .82rem;
+            outline: none;
+            border-radius: 2px;
+            width: 280px;
+            transition: border-color .15s;
+        }
+
+        .tab-search:focus {
+            border-color: var(--accent);
+        }
+
+        .tab-search::placeholder {
+            color: #2a4858;
+        }
+
+        /* ── DRIVE BUTTON ────────────────────────────────────── */
+        .drive-btn {
+            border-color: #2a4858;
+            color: #4a7090;
+        }
+
+        .drive-btn.on {
+            border-color: #a06020;
+            color: #d08030;
+            box-shadow: 0 0 6px rgba(192, 120, 0, .35);
+        }
+
+        /* ── FOOTER ──────────────────────────────────────────────── */
+        footer {
+            padding: 20px 50px;
+            border-top: 1px solid var(--border);
+            font-size: .68rem;
+            color: #1a2e3e;
+            letter-spacing: .1em;
+            text-align: center;
+        }
+
+        /* ── MOBILE ──────────────────────────────────────────────── */
+        @media(max-width:700px) {
+            .header-top {
+                padding: 15px 20px 10px;
+            }
+
+            .global-bar {
+                padding: 8px 15px;
+                gap: 10px;
+            }
+
+            .combine-selectors {
+                grid-template-columns: 1fr;
+            }
+
+            .combine-col {
+                max-height: 500px;
+            }
+
+            .breaks-page-header {
+                padding: 12px 18px;
+            }
+        }
+
+        /* ── CATHODE WARM-UP ─────────────────────────────────────── */
+        .cathode {
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="header-top cathode">
+            <h1>NEUROFUNK BASSLINES</h1>
+            <span class="subtitle">100 Melodies · 80 Rhythms · Breaks · Combine · Key-Transposable · MIDI Export</span>
+        </div>
+        <div class="tabs cathode">
+            <button class="tab-btn active" data-tab="melodies">▸ MELODIES <span class="vol-num">100</span></button>
+            <button class="tab-btn r-tab" data-tab="rhythms">▸ RHYTHMS <span class="vol-num">80</span></button>
+            <button class="tab-btn bk-tab" data-tab="breaks">🥁 BREAKS</button>
+            <button class="tab-btn co-tab" data-tab="combine">❆ COMBINE</button>
+        </div>
+    </header>
+
+    <div class="global-bar cathode" id="globalBar">
+        <span class="g-label">KEY</span>
+        <input type="range" id="gPitch" min="-12" max="12" value="0" step="1" style="width:100px">
+        <span class="pitch-display" id="pitchDisp">F (0)</span>
+        <div class="g-sep"></div>
+        <span class="g-label">WAVEFORM</span>
+        <button class="wave-btn active" data-wave="dual">DUAL SAW</button>
+        <button class="wave-btn" data-wave="saw">SAW</button>
+        <button class="wave-btn" data-wave="square">SQ</button>
+        <button class="wave-btn" data-wave="sine">SINE</button>
+        <div class="g-sep"></div>
+        <span class="g-label">FILTER</span>
+        <input type="range" id="gFilter" min="80" max="8000" value="800" step="10" style="width:100px">
+        <span class="filter-val" id="filterDisp">800 Hz</span>
+        <button class="btn drive-btn" id="driveBtn">DRIVE</button>
+        <div class="g-sep"></div>
+        <span class="g-label">BPM</span>
+        <input type="range" class="bpm-slider" min="100" max="200" value="172" step="1" style="width:100px">
+        <span class="tempo-val bpm-val">172</span>
+        <div class="g-sep"></div>
+        <span class="g-label">VOL</span>
+        <input type="range" class="vol-slider" min="0" max="1" value="0.5" step="0.01" style="width:75px">
+        <span class="g-label">SUB</span>
+        <input type="range" class="sub-slider" min="0" max="1" value="0.4" step="0.01" style="width:75px">
+        <div class="g-sep"></div>
+        <span class="g-label">SUB NUDGE</span>
+        <input type="range" id="gNudgeSub" min="-5" max="10" value="0" step="1" style="width:60px">
+        <span class="nudge-val" id="nudgeSubDisp">0 ms</span>
+        <span class="g-label" style="margin-left:8px">GROOVE</span>
+        <input type="range" id="gNudgeGroove" min="-20" max="30" value="0" step="1" style="width:60px">
+        <span class="nudge-val" id="nudgeGrooveDisp">0 ms</span>
+        <div class="g-sep"></div>
+        <button class="btn" id="globalPlayBtn" style="border-color:#2a5060;color:#5a9090" title="Play / Stop Sequence">▶
+            PLAY</button>
+        <button class="btn loop-btn active-loop">↺ LOOP ON</button>
+    </div>
+
+    <div class="tab-page active cathode" id="tab-melodies">
+        <div class="tab-search-bar">
+            <input class="tab-search" id="melSearch" placeholder="search melodies…">
+        </div>
+        <div class="pitch-grid" id="grid-melodies"></div>
+    </div>
+
+    <div class="tab-page cathode" id="tab-rhythms">
+        <div class="tab-search-bar">
+            <input class="tab-search" id="rhySearch" placeholder="search rhythms…">
+        </div>
+        <div class="rhythm-grid" id="grid-rhythms"></div>
+    </div>
+
+    <div class="tab-page cathode" id="tab-breaks">
+        <div class="breaks-page-header">
+            <span class="breaks-title">BREAKBEAT REFERENCE</span>
+            <span class="breaks-sub">Classic breaks at current BPM — click any card to audition. Kick / Snare / Hat
+                rows.</span>
+        </div>
+        <div class="breaks-grid" id="breaks-grid"></div>
+    </div>
+
+    <div class="tab-page cathode" id="tab-combine">
+        <div class="combine-layout">
+            <div class="combine-dice-bar">
+                <span class="combine-dice-label">NEURAL DICE</span>
+                <button class="dice-global-btn" id="diceAllBtn">⚄ RANDOMISE ALL</button>
+                <span class="combine-dice-label" style="margin-left:4px;color:#2a4858">— or roll per column ↓</span>
+            </div>
+            <div class="combine-selectors">
+                <div class="combine-col">
+                    <div class="combine-col-header">
+                        <span class="combine-col-title">① SELECT MELODY</span>
+                        <span class="combine-col-sub">100 patterns</span>
+                        <button class="dice-btn" id="dicePitchBtn" title="Random melody">⚄</button>
+                    </div>
+                    <div class="combine-search-wrap">
+                        <input class="combine-search" id="pitchSearch" placeholder="filter patterns…">
+                    </div>
+                    <div class="combine-list" id="combine-pitch-list"></div>
+                </div>
+                <div class="combine-col">
+                    <div class="combine-col-header">
+                        <span class="combine-col-title">② SELECT RHYTHM</span>
+                        <span class="combine-col-sub">80 patterns</span>
+                        <button class="dice-btn" id="diceRhythmBtn" title="Random rhythm">⚄</button>
+                    </div>
+                    <div class="combine-search-wrap">
+                        <input class="combine-search" id="rhythmSearch" placeholder="filter patterns…">
+                    </div>
+                    <div class="combine-list" id="combine-rhythm-list"></div>
+                </div>
+                <div class="combine-col">
+                    <div class="combine-col-header">
+                        <span class="combine-col-title">③ SELECT BREAK</span>
+                        <span class="combine-col-sub" id="breakColSub">17 patterns</span>
+                        <button class="dice-btn" id="diceBreakBtn" title="Random break">⚄</button>
+                    </div>
+                    <div class="combine-search-wrap">
+                        <input class="combine-search" id="breakSearch" placeholder="filter patterns…">
+                    </div>
+                    <div class="combine-list" id="combine-breaks-list"></div>
+                </div>
+            </div>
+            <div class="combine-centre">
+                <div class="combine-controls">
+                    <div class="combine-active-labels">
+                        <div class="cal-block" id="cal-pitch">
+                            <span class="cal-label">MELODY</span>
+                            <span class="cal-name" id="cal-pitch-name">— none selected —</span>
+                        </div>
+                        <div class="cal-plus">+</div>
+                        <div class="cal-block" id="cal-rhythm">
+                            <span class="cal-label">RHYTHM</span>
+                            <span class="cal-name" id="cal-rhythm-name">— none selected —</span>
+                        </div>
+                        <div class="cal-plus">+</div>
+                        <div class="cal-block" id="cal-break">
+                            <span class="cal-label">BREAK</span>
+                            <span class="cal-name" id="cal-break-name">— none selected —</span>
+                        </div>
+                    </div>
+                    <div class="combine-btns">
+                        <button class="btn export-btn" id="combineMidiBtn" disabled title="Export as MIDI">⬇
+                            MIDI</button>
+                        <button class="btn export-btn" id="combineClipBtn" disabled
+                            title="Copy pattern text to clipboard">⎘ COPY</button>
+                    </div>
+                </div>
+                <div class="combine-result-section">
+                    <div class="combine-canvas-wrap">
+                        <canvas id="combine-canvas" width="900" height="250"></canvas>
+                        <div class="combine-canvas-empty" id="combine-empty">Select a melody + rhythm to generate
+                            combined
+                            visualisation</div>
+                    </div>
+                    <canvas id="combine-rhythm-canvas" width="900" height="75"></canvas>
+                    <div class="combine-legend">
+                        <span class="cleg"><span class="cleg-dot" style="background:#c07c00"></span>pitch curve</span>
+                        <span class="cleg"><span class="cleg-dot" style="background:#a02848"></span>rhythm hit</span>
+                        <span class="cleg"><span class="cleg-dot"
+                                style="background:rgba(192,124,0,.18)"></span>silence</span>
+                        <span class="cleg-note">Pitch notes cycle across rhythm hit positions</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>NEUROFUNK BASSLINE REFERENCE // 100 MELODIES + 80 RHYTHMS // CLICK ANY CARD TO AUDITION</footer>
+
+    <script>
+        'use strict';
+        // ═══════════════════════════════════════════════════════════
+        // SCALE / NOTE HELPERS
+        // ═══════════════════════════════════════════════════════════
+        const ROOT_BASE = 43.65; // F1
+        let globalSemis = 0;
+        function rootHz() { return ROOT_BASE * Math.pow(2, globalSemis / 12); }
+
+        const KEY_NAMES = ['F', 'F#', 'G', 'G#', 'A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E'];
+        function keyName(s) { return KEY_NAMES[((s % 12) + 12) % 12]; }
+
+        function buildScale() {
+            const r = rootHz();
+            return {
+                '1': r, 'b2': r * Math.pow(2, 1 / 12), '2': r * Math.pow(2, 2 / 12),
+                'b3': r * Math.pow(2, 3 / 12), '3': r * Math.pow(2, 4 / 12), '4': r * Math.pow(2, 5 / 12),
+                'b5': r * Math.pow(2, 6 / 12), '5': r * Math.pow(2, 7 / 12), 'b6': r * Math.pow(2, 8 / 12),
+                '6': r * Math.pow(2, 9 / 12), 'b7': r * Math.pow(2, 10 / 12), '7': r * Math.pow(2, 11 / 12),
+                '8': r * 2, 'b9': r * Math.pow(2, 13 / 12), '9': r * Math.pow(2, 14 / 12),
+                'b10': r * Math.pow(2, 15 / 12), '10': r * Math.pow(2, 16 / 12),
+                '11': r * Math.pow(2, 17 / 12), 'b12': r * Math.pow(2, 18 / 12), '12': r * Math.pow(2, 19 / 12),
+            };
+        }
+        let SC = buildScale();
+
+        function n(name, dur = 1, glide = false) { return { name, dur, glide, f: 0 }; }
+        function rest(dur = 1) { return { name: null, dur, glide: false, f: 0 }; }
+        function resolveNotes(notes) {
+            SC = buildScale();
+            return notes.map(nt => ({ ...nt, f: nt.name ? (SC[nt.name] || rootHz()) : 0 }));
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // PATTERNS — MELODIES VOL.1 (01–20)
+        // ═══════════════════════════════════════════════════════════
+        const PATTERNS1 = [
+            { title: "The Classic Drop", tag: "loop", desc: "Root drop to sub with bounce. The foundational neuro move.", notes: [n('1', 2), n('1', 1, true), n('b7', 1, true), n('5', 2), n('b3', 1, true), n('1', 1), n('1', 2), n('5', 1, true), n('4', 1, true), n('b3', 2, true), n('1', 4)] },
+            { title: "Call & Response: Stab/Growl", tag: "call", desc: "Short stab calls out; long growl responds. Classic 2-bar phrase.", notes: [n('5', 1), n('b5', 0.5), n('4', 0.5), rest(2), n('b3', 4, true), n('1', 1), n('b3', 0.5), n('4', 0.5), rest(2), n('5', 4)] },
+            { title: "Chromatic Creep Up", tag: "sweep", desc: "Half-step ascent builds tension across the bar.", notes: [n('1', 2), n('b2', 2, true), n('2', 2, true), n('b3', 2, true), n('3', 2, true), n('4', 2, true), n('b5', 2, true), n('5', 2)] },
+            { title: "The Rollin' Fifth", tag: "loop", desc: "Root and 5th alternation — driving and functional.", notes: [n('1', 1), n('5', 1), n('1', 1), n('5', 1), n('1', 1), n('5', 1), n('b7', 1, true), n('5', 1), n('1', 1), n('5', 1), n('1', 1), n('5', 1), n('8', 2, true), n('5', 2)] },
+            { title: "Sub Drop Plunge", tag: "sweep", desc: "From the octave, falls to the sub-root in a dramatic glide.", notes: [n('8', 2, true), n('5', 2, true), n('b3', 2, true), n('1', 4), n('8', 1, true), n('5', 1, true), n('b3', 2, true), n('1', 4, true)] },
+            { title: "Minor 3rd Bounce", tag: "loop", desc: "Root and minor 3rd alternating — the minor bounce motif.", notes: [n('1', 1), n('b3', 1), n('1', 1), n('b3', 1), n('1', 1), n('b3', 1), n('5', 1), n('b3', 1), n('1', 1), n('b3', 1), n('1', 1), n('b3', 1), n('b7', 2, true), n('1', 2)] },
+            { title: "Rising Tension (4th–5th)", tag: "call", desc: "Climbs through the 4th and 5th — question phrase asking for resolution.", notes: [n('1', 2), n('4', 2, true), n('5', 4), rest(2), n('1', 2), n('4', 1, true), n('5', 1, true), n('b7', 2, true), n('8', 4)] },
+            { title: "Tritone Evil Leap", tag: "resp", desc: "The b5 is the most dissonant interval — maximum darkness.", notes: [n('1', 2), n('b5', 2), n('1', 2), n('b5', 2), n('1', 1), n('b5', 0.5), rest(0.5), n('b5', 1), n('1', 4)] },
+            { title: "Wobble Descend", tag: "sweep", desc: "Slow chromatic descent from the 5th to the root.", notes: [n('5', 2, true), n('b5', 2, true), n('4', 2, true), n('b3', 2, true), n('2', 2, true), n('b2', 2, true), n('1', 4)] },
+            { title: "Octave Hammer", tag: "loop", desc: "Punches between root and octave — relentless energy.", notes: [n('1', 1), n('8', 1), n('1', 1), n('8', 1), n('1', 1), n('8', 1), n('1', 1), n('8', 1), n('1', 1), n('8', 1), n('1', 1), n('5', 1), n('b3', 1), n('1', 1), n('8', 2)] },
+            { title: "Minor Pentatonic Run", tag: "sweep", desc: "Full minor pentatonic run up and back down.", notes: [n('1', 1), n('b3', 1), n('4', 1), n('5', 1), n('b7', 1), n('8', 1), n('b7', 1), n('5', 1), n('4', 1), n('b3', 1), n('1', 1), n('b7', 1, true), n('5', 2), n('1', 2)] },
+            { title: "Ghost Note Funk", tag: "resp", desc: "Accented hits with ghost 16ths — rhythmic, funky.", notes: [n('1', 0.5), rest(0.5), n('1', 0.5), n('b3', 0.5), rest(1), n('5', 0.5), rest(0.5), n('1', 1), n('b7', 0.5), rest(0.5), n('b3', 0.5), rest(0.5), n('1', 1), rest(1), n('1', 2)] },
+            { title: "Long Growl with Tail", tag: "resp", desc: "Long held note with pitch tail — the Reese growl pattern.", notes: [n('1', 6, true), n('b7', 2, true), n('5', 4, true), n('b3', 2, true), n('1', 2)] },
+            { title: "9th Leap & Fall", tag: "call", desc: "Leaps to the 9th and falls — high drama phrase.", notes: [n('1', 2), n('9', 2, true), n('9', 2, true), n('8', 2, true), n('5', 2, true), n('b3', 2, true), n('1', 4)] },
+            { title: "Stutter Sub Pulse", tag: "loop", desc: "Rapid repeat on the root — mechanical, driving pulse.", notes: [n('1', 0.5), n('1', 0.5), rest(0.5), n('1', 0.5), n('1', 0.5), rest(0.5), n('1', 1), rest(1), n('1', 0.5), n('1', 0.5), rest(0.5), n('1', 0.5), n('b7', 0.5), rest(0.5), n('5', 1), rest(1)] },
+            { title: "b7 Resolve Drop", tag: "resp", desc: "Sits on the b7, then drops to root — tension and release.", notes: [n('b7', 4, true), n('5', 2, true), n('b3', 2, true), n('b7', 2, true), n('5', 1, true), n('b3', 1, true), n('1', 4)] },
+            { title: "Reese Bass Glide", tag: "sweep", desc: "Classic Reese — long gliding notes, filter implied.", notes: [n('1', 4, true), n('b7', 4, true), n('5', 4, true), n('b3', 2, true), n('1', 2)] },
+            { title: "Dual Octave Call", tag: "call", desc: "Calls between sub-root and octave — wide register tension.", notes: [n('1', 2), n('8', 2), n('1', 2), n('8', 2), n('1', 1), n('8', 1), n('5', 1), n('b3', 1), n('1', 4)] },
+            { title: "Neuro Riff (2-Bar)", tag: "loop", desc: "Full 2-bar neuro figure — complex, driving, complete.", notes: [n('1', 1), n('b3', 0.5), n('4', 0.5), n('5', 1), rest(0.5), n('b7', 0.5), n('8', 1), n('5', 1), n('b3', 1), n('1', 0.5), n('b3', 0.5), n('4', 1), n('5', 0.5), n('b5', 0.5), n('4', 1), n('b3', 1), n('1', 2)] },
+            { title: "Pitch-Fall Outro", tag: "resp", desc: "Falls from the top of the range to the root — phrase ending.", notes: [n('8', 2, true), n('5', 2, true), n('b3', 2, true), n('2', 2, true), n('b2', 2, true), n('1', 4)] },
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // MELODIES VOL.2 (21–40)
+        // ═══════════════════════════════════════════════════════════
+        const PATTERNS2 = [
+            { title: "Half-Step Neighbour Stab", tag: "call", desc: "Stabs a semitone above the root, falls back — neighbour-note aggression.", notes: [n('b2', 0.5), n('1', 1.5), n('b2', 0.5), n('1', 1.5), n('b2', 1, true), n('1', 4), n('b2', 0.5), n('1', 0.5), n('b2', 0.5), n('1', 0.5), n('b2', 2, true), n('1', 4)] },
+            { title: "Sci-Fi Descend", tag: "sweep", desc: "Octave glide downward — sci-fi bass drop.", notes: [n('8', 2, true), n('5', 2, true), n('b3', 2, true), n('1', 2, true), n('b7', 1, true), n('5', 1, true), n('b3', 2, true), n('1', 4)] },
+            { title: "Sub-Octave Root Lock", tag: "loop", desc: "Alternates root and sub-root — massive anchor.", notes: [n('1', 2), n('8', 1), n('1', 1), n('1', 2), n('8', 1), n('1', 1), n('1', 2), n('8', 2), n('1', 2), n('b7', 1, true), n('1', 1)] },
+            { title: "b6 Darkness Hook", tag: "loop", desc: "Root and flat-6 — Eastern, cinematic darkness.", notes: [n('1', 2), n('b6', 1, true), n('b6', 1), n('5', 2), n('b3', 1, true), n('1', 1), n('1', 2), n('b6', 1, true), n('5', 1, true), n('b3', 2), n('1', 2)] },
+            { title: "4th Drop Hook", tag: "resp", desc: "Lands on the 4th then drops to root. Resolves with momentum.", notes: [n('4', 2), n('4', 1, true), n('b3', 1, true), n('1', 4), n('5', 1, true), n('4', 2, true), n('b3', 1, true), n('1', 4)] },
+            { title: "Sci-Fi Alarm Repeat", tag: "loop", desc: "Rapid same-pitch stab with rests — machine-gun alarm motif.", notes: [n('b5', 0.5), rest(0.5), n('b5', 0.5), rest(0.5), n('b5', 0.5), rest(0.5), n('b5', 2), rest(1), n('b5', 0.5), rest(0.5), n('b5', 0.5), rest(0.5), n('1', 2), rest(2)] },
+            { title: "Rising Minor 6th Leap", tag: "call", desc: "Minor 6th leap upward — dramatic call phrase.", notes: [n('1', 2), n('b6', 2, true), n('b6', 2), rest(2), n('1', 2), n('b6', 1, true), n('5', 1, true), n('4', 2, true), n('1', 4)] },
+            { title: "Whole Tone Glide Up", tag: "sweep", desc: "Whole-tone scale ascent — dreamy, unresolved.", notes: [n('1', 2, true), n('2', 2, true), n('3', 2, true), n('b5', 2, true), n('b6', 2, true), n('b7', 2, true), n('8', 2)] },
+            { title: "Sub Pump & Climb", tag: "loop", desc: "Sub pump on root then climbs — energy builder.", notes: [n('1', 0.5), rest(0.5), n('1', 0.5), rest(0.5), n('b3', 1), n('4', 1), n('5', 1), n('b7', 1), n('8', 2)] },
+            { title: "Delayed Drop Resolution", tag: "resp", desc: "Tension held, then drops to root on the offbeat.", notes: [n('b7', 2), n('5', 2), n('b3', 2), rest(2), n('b7', 1, true), n('5', 1, true), n('b3', 1, true), n('1', 3), rest(2)] },
+            { title: "Octave Walk Down", tag: "sweep", desc: "Scale walk from octave to root — clean descending line.", notes: [n('8', 1, true), n('b7', 1, true), n('5', 1, true), n('4', 1, true), n('b3', 1, true), n('2', 1, true), n('b2', 1, true), n('1', 4)] },
+            { title: "b3 to 5 Pivot", tag: "loop", desc: "Minor 3rd to 5th movement — minor key functional hook.", notes: [n('b3', 2), n('5', 2), n('b3', 2), n('5', 2), n('b3', 1), n('4', 1, true), n('5', 2), n('b7', 1, true), n('1', 3)] },
+            { title: "Two-Octave Scream", tag: "call", desc: "Leaps two octaves — maximum dynamic range call.", notes: [n('1', 2), n('8', 1, true), n('12', 3), rest(2), n('1', 2), n('8', 1, true), n('12', 1, true), n('b12', 2, true), n('8', 4)] },
+            { title: "Chromatic Half-Step Fall", tag: "sweep", desc: "Semitone-by-semitone descent — clinical chromatic fall.", notes: [n('5', 1, true), n('b5', 1, true), n('4', 1, true), n('b3', 1, true), n('2', 1, true), n('b2', 1, true), n('1', 2), rest(4)] },
+            { title: "Sparse 2-Note Motif", tag: "loop", desc: "Just root and 5th, widely spaced — space as tension.", notes: [n('1', 4), rest(2), n('5', 2), rest(4), n('1', 4), rest(2), n('b7', 1, true), n('1', 1)] },
+            { title: "Upward Minor Scale Run", tag: "call", desc: "Full natural minor scale run upward — classical neuro move.", notes: [n('1', 1), n('2', 1), n('b3', 1), n('4', 1), n('5', 1), n('b6', 1), n('b7', 1), n('8', 1), n('b7', 1, true), n('5', 2, true), n('b3', 1, true), n('1', 4)] },
+            { title: "Trill on b3", tag: "loop", desc: "Fast trill between root and minor 3rd — nervous energy.", notes: [n('1', 0.5), n('b3', 0.5), n('1', 0.5), n('b3', 0.5), n('1', 0.5), n('b3', 0.5), n('1', 1), rest(1), n('1', 0.5), n('b3', 0.5), n('1', 0.5), n('b3', 0.5), n('5', 2), rest(2)] },
+            { title: "Answer with Sub Bomb", tag: "resp", desc: "A call is answered by a massive low sub hit.", notes: [n('5', 1), n('b7', 1), n('8', 2), rest(4), n('1', 6), rest(2)] },
+            { title: "Zigzag Interval Jump", tag: "loop", desc: "Alternates up and down in wide intervals — unpredictable.", notes: [n('1', 1), n('8', 1), n('b3', 1), n('b7', 1), n('4', 1), n('b6', 1), n('5', 1), n('b5', 1), n('1', 1), n('8', 1), n('b3', 1), n('b7', 1), n('1', 4)] },
+            { title: "Landing on the 2", tag: "resp", desc: "Phrase resolves to the 2nd — unusual, slightly unfinished.", notes: [n('1', 2), n('b3', 1, true), n('4', 1, true), n('5', 2, true), n('4', 1, true), n('b3', 1, true), n('2', 4), rest(4)] },
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // MELODIES VOL.3 — Modal (41–60)
+        // ═══════════════════════════════════════════════════════════
+        const PATTERNS3 = [
+            { title: "Dorian Root Groove", tag: "loop", desc: "Dorian mode — 1 2 b3 4 5 6 b7. Natural 6th gives lift.", notes: [n('1', 2), n('2', 1), n('b3', 1), n('5', 2), n('6', 1), n('b7', 1), n('1', 2), n('6', 1, true), n('5', 1, true), n('b3', 2), n('1', 2)] },
+            { title: "Dorian 6th Colour Hook", tag: "call", desc: "Dorian natural 6th as the defining tension note.", notes: [n('1', 2), n('6', 2), n('5', 2), n('6', 2), n('1', 2), n('6', 1, true), n('b7', 1, true), n('5', 2), n('1', 4)] },
+            { title: "Dorian Ascending Run", tag: "sweep", desc: "Full Dorian scale climb — fluid, modal feel.", notes: [n('1', 1), n('2', 1), n('b3', 1), n('4', 1), n('5', 1), n('6', 1), n('b7', 1), n('8', 1), n('b7', 1, true), n('6', 1, true), n('5', 2, true), n('1', 4)] },
+            { title: "Dorian 2-Bar Call & Return", tag: "call", desc: "Leaves on b7, resolves back to root — classic call phrase.", notes: [n('1', 2), n('b3', 1), n('4', 1), n('5', 2), n('b7', 2), n('b7', 2, true), n('6', 1, true), n('5', 1, true), n('b3', 2, true), n('1', 4)] },
+            { title: "Phrygian b2 Stab", tag: "call", desc: "Phrygian — the b2 is the signature aggression note.", notes: [n('b2', 1), n('1', 1), n('b2', 1), n('1', 1), n('b2', 1), n('1', 2), rest(1), n('b2', 1), n('1', 1), n('b2', 1), n('1', 3), rest(2)] },
+            { title: "Phrygian Half-Step Lock", tag: "loop", desc: "Root / b2 oscillation — signature Phrygian darkness.", notes: [n('1', 1), n('b2', 1), n('1', 1), n('b2', 1), n('1', 1), n('b2', 1), n('1', 2), rest(1), n('1', 1), n('b2', 1), n('1', 1), n('b3', 1), n('1', 2), rest(2)] },
+            { title: "Phrygian Falling Line", tag: "sweep", desc: "Descend through b2 and b3 into root — Phrygian collapse.", notes: [n('5', 2, true), n('4', 2, true), n('b3', 2, true), n('b2', 2, true), n('1', 4), rest(4)] },
+            { title: "Phrygian Dark Motif", tag: "loop", desc: "3-note riff on 1 b2 b7 — repeating dark cell.", notes: [n('1', 1), n('b2', 1), n('b7', 2), n('1', 1), n('b2', 1), n('b7', 2), n('1', 1), n('b2', 1), n('b3', 1), n('1', 1), n('b7', 2), n('1', 2)] },
+            { title: "Phrygian Dominant Rise", tag: "call", desc: "Phrygian Dominant — raised 3rd gives cinematic evil.", notes: [n('1', 2), n('b2', 1), n('3', 1), n('4', 2), n('b5', 1, true), n('5', 1), n('1', 2), n('b2', 1, true), n('3', 2, true), n('4', 1, true), n('1', 4)] },
+            { title: "Phrygian Dom Fanfare Drop", tag: "resp", desc: "Maj3 leap then fall to root — cinematic statement.", notes: [n('3', 2), n('4', 1), n('b5', 1), n('5', 2), rest(2), n('3', 1, true), n('b2', 2, true), n('1', 4), rest(2)] },
+            { title: "Phrygian Dom Riff (2-Bar)", tag: "loop", desc: "Middle-Eastern tension motif — two bars of menace.", notes: [n('1', 1), n('b2', 0.5), n('3', 0.5), n('4', 1), n('b5', 0.5), n('4', 0.5), n('3', 1), n('b2', 1), n('1', 1), n('b2', 1), n('1', 1), n('3', 1, true), n('4', 2, true), n('1', 4)] },
+            { title: "Phrygian Dom Resolve", tag: "resp", desc: "b2 tension held, then resolves to root.", notes: [n('b2', 4, true), n('3', 2, true), n('b2', 2, true), n('1', 4), rest(4)] },
+            { title: "Locrian Tritone Riff", tag: "loop", desc: "Locrian mode — b5 makes every note feel unstable.", notes: [n('1', 2), n('b5', 2), n('b3', 1), n('b5', 1), n('1', 2), n('b5', 2), n('b7', 1, true), n('1', 1), rest(2)] },
+            { title: "Locrian Falling Collapse", tag: "sweep", desc: "Full Locrian descend — zero resolution, pure fall.", notes: [n('8', 1, true), n('b7', 1, true), n('b6', 1, true), n('b5', 1, true), n('4', 1, true), n('b3', 1, true), n('b2', 1, true), n('1', 2), rest(6)] },
+            { title: "Locrian Root Denial", tag: "call", desc: "Avoids landing on root entirely — unresolved tension.", notes: [n('b3', 2), n('b5', 2), n('b7', 2), n('b6', 2), n('b3', 2), n('b2', 2), n('b5', 2), n('b3', 2)] },
+            { title: "Locrian b5 Stab & Hold", tag: "resp", desc: "b5 hit left to ring — maximum dread.", notes: [n('1', 2), n('b5', 6), rest(2), n('1', 2), n('b5', 4), rest(2), n('1', 2)] },
+            { title: "Modal Ambiguity Hook", tag: "loop", desc: "Dorian/Phrygian shared tones — intentionally blurred modal identity.", notes: [n('1', 2), n('b3', 1), n('4', 1), n('5', 2), n('b7', 2), n('1', 2), n('b2', 1), n('b3', 1), n('5', 2), n('1', 2)] },
+            { title: "Mode Pivot Motif", tag: "call", desc: "Shifts from Dorian feel to Phrygian mid-phrase.", notes: [n('1', 2), n('2', 1), n('b3', 1), n('5', 2), n('6', 2), n('b2', 1), n('b3', 1), n('1', 4), rest(2)] },
+            { title: "Static Modal Drone Riff", tag: "loop", desc: "Root pedal with modal colour notes above — sustained mode feel.", notes: [n('1', 1), n('1', 1), n('b3', 1), n('1', 1), n('1', 1), n('1', 1), n('4', 1), n('1', 1), n('1', 1), n('1', 1), n('b6', 1), n('1', 1), n('1', 1), n('b7', 1), n('1', 1), n('1', 1)] },
+            { title: "Modal Negative Space", tag: "resp", desc: "Long gaps, single modal note hits — space as tension.", notes: [n('b3', 1), rest(3), n('b7', 1), rest(3), n('b5', 1), rest(3), n('1', 4)] },
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // MELODIES VOL.4 — Two-Bass Counterpoint (61–80)
+        // ═══════════════════════════════════════════════════════════
+        const PATTERNS4 = [
+            { title: "Root Hold / Chromatic MID", tag: "loop", desc: "SUB holds root; MID creeps chromatically. Bass counterpoint.", notes: [n('1', 1), n('b2', 1), n('2', 1), n('b3', 1), n('3', 1), n('4', 1), n('b5', 1), n('5', 1), n('1', 1), n('b2', 1), n('2', 1), n('b3', 1), n('1', 4)] },
+            { title: "Sub Pulse / MID Call Out", tag: "call", desc: "SUB steady quarters; MID rises away in a leap.", notes: [n('1', 2), n('5', 2, true), n('8', 2), n('b7', 2, true), n('1', 2), n('5', 1), n('b7', 1), n('8', 2, true), n('1', 4)] },
+            { title: "Pedal Point / MID Riff", tag: "loop", desc: "Static pedal note while upper voice runs a neuro figure.", notes: [n('1', 1), n('b3', 0.5), n('4', 0.5), n('5', 1), n('1', 1), n('b7', 0.5), n('5', 0.5), n('1', 1), n('1', 1), n('4', 1), n('5', 0.5), n('b5', 0.5), n('4', 1), n('b3', 1), n('1', 2)] },
+            { title: "Octave Split / MID Answer", tag: "resp", desc: "SUB alternates root+octave; MID answers with b7 fall.", notes: [n('1', 2), n('8', 2), n('b7', 2, true), n('5', 2), n('1', 2), n('8', 2), n('b7', 1, true), n('5', 1, true), n('b3', 2, true), n('1', 2)] },
+            { title: "Sub Silence / MID Carries", tag: "loop", desc: "SUB drops bar 2; MID holds the weight alone.", notes: [n('1', 1), n('1', 1), n('5', 1), n('1', 1), n('b3', 2), n('5', 1, true), n('b7', 1, true), n('b3', 1, true), n('5', 2), rest(3), n('1', 2)] },
+            { title: "Locked Rhythm / MID Floats", tag: "loop", desc: "Same rhythm, different intervals — creates stereo width feel.", notes: [n('1', 1), n('4', 1), n('1', 1), n('4', 1), n('5', 1), n('b7', 1), n('5', 1), n('b7', 1), n('1', 1), n('4', 1), n('b3', 1), n('5', 1), n('b7', 2, true), n('1', 4)] },
+            { title: "Sub Stab / MID Sustain", tag: "call", desc: "SUB punchy 8ths; MID holds long notes over top.", notes: [n('1', 0.5), rest(0.5), n('1', 0.5), rest(0.5), n('1', 0.5), rest(0.5), n('5', 4, true), n('1', 0.5), rest(0.5), n('1', 0.5), rest(0.5), n('b7', 4, true), n('1', 2)] },
+            { title: "Dorian Pedal / MID Run", tag: "sweep", desc: "SUB holds Dorian root; MID runs the Dorian scale.", notes: [n('1', 1), n('2', 1), n('b3', 1), n('4', 1), n('5', 1), n('6', 1), n('b7', 1), n('8', 1), n('8', 1, true), n('b7', 1, true), n('6', 1, true), n('5', 1, true), n('4', 1, true), n('b3', 1, true), n('2', 1, true), n('1', 2)] },
+            { title: "Phrygian Split Motion", tag: "loop", desc: "SUB on root; MID stabs the b2 riff — max aggression.", notes: [n('1', 1), n('b2', 1), n('1', 1), n('b2', 1), n('b3', 1), n('b2', 1), n('1', 2), n('1', 1), n('b2', 1), n('1', 1), n('b3', 1), n('b2', 2, true), n('1', 4)] },
+            { title: "Tritone Counterpoint", tag: "loop", desc: "SUB on root; MID sustains tritone above — unresolved dread.", notes: [n('1', 2), n('b5', 2), n('1', 2), n('b5', 2), n('1', 2), n('b5', 1), n('4', 1), n('1', 4)] },
+            { title: "Call Up / Response Down", tag: "call", desc: "SUB rises a 4th while MID falls a 5th simultaneously.", notes: [n('1', 2, true), n('4', 2), rest(2), n('5', 2, true), n('1', 4), n('1', 2, true), n('4', 2), n('5', 2, true), n('1', 4)] },
+            { title: "Mirror Motion", tag: "loop", desc: "SUB and MID move in contrary motion — one up, one down.", notes: [n('1', 1, true), n('2', 1, true), n('b3', 1, true), n('4', 1, true), n('5', 2), n('5', 1, true), n('4', 1, true), n('b3', 1, true), n('2', 1, true), n('1', 4)] },
+            { title: "Canon Offset (Half Bar)", tag: "loop", desc: "MID plays same motif as SUB, offset by half a bar.", notes: [n('1', 1), n('b3', 1), n('5', 1), n('b7', 1), n('b3', 1), n('5', 1), n('b7', 1), n('8', 1), n('1', 1), n('b3', 1), n('5', 1), n('b7', 1), n('1', 2), rest(2)] },
+            { title: "Sub Bomb / MID Silence", tag: "resp", desc: "SUB delivers massive low hit; MID rests completely — drama.", notes: [rest(6), n('1', 6), rest(4)] },
+            { title: "Rhythmic Displacement Pair", tag: "loop", desc: "Same note: SUB on beat, MID on offbeat — creates pulse.", notes: [n('1', 1), rest(1), n('1', 1), rest(1), n('1', 1), rest(1), n('1', 1), rest(1), n('5', 1), rest(1), n('5', 1), rest(1), n('b7', 2), rest(2)] },
+            { title: "Locrian Tension Layer", tag: "loop", desc: "SUB on root; MID holds b5 — unresolved dread layer.", notes: [n('1', 2), n('b5', 6), n('1', 2), n('b5', 4), n('b7', 2, true), n('1', 2)] },
+            { title: "Phrygian Dom Dual Climb", tag: "call", desc: "Both lines rise in different intervals — cinematic swell.", notes: [n('1', 2, true), n('b2', 2, true), n('3', 2, true), n('4', 2, true), n('5', 4), n('5', 2, true), n('b7', 2, true), n('8', 4)] },
+            { title: "Neuro Figure / Sub Anchor", tag: "loop", desc: "SUB holds root groove; MID plays 2-bar neuro riff over top.", notes: [n('1', 1), n('b3', 0.5), n('4', 0.5), n('5', 1), n('b5', 0.5), n('4', 0.5), n('b3', 1), n('1', 1), n('b7', 0.5), n('5', 0.5), n('b3', 1), n('1', 0.5), n('b2', 0.5), n('1', 2), rest(2)] },
+            { title: "Sparse Counterpoint", tag: "loop", desc: "Both lines minimal — 2–3 notes each, high space.", notes: [n('1', 4), rest(2), n('5', 2), rest(4), n('b3', 2), rest(4), n('1', 2)] },
+            { title: "Full Contrary Collapse", tag: "sweep", desc: "SUB rises, MID falls — converge on root at bar end.", notes: [n('1', 1, true), n('2', 1, true), n('b3', 1, true), n('4', 1, true), n('5', 1, true), n('b7', 1, true), n('8', 2), n('8', 1, true), n('b7', 1, true), n('5', 1, true), n('4', 1, true), n('b3', 1, true), n('1', 4)] },
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // MELODIES VOL.5 — Techstep & Dark Neuro (81–100)
+        // ═══════════════════════════════════════════════════════════
+        const PATTERNS5 = [
+            { title: "Mechanical Root Lock", tag: "loop", desc: "Perfectly quantised, zero swing — robotic root intent.", notes: [n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('1', 1), n('5', 1), n('b5', 1)] },
+            { title: "Machine-Gun 16ths", tag: "loop", desc: "Konflict-style relentless 16th note assault on the root.", notes: [n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('b5', .5), n('1', .5), n('b5', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', 2)] },
+            { title: "16th Stutter Burst", tag: "fill", desc: "Short machine-gun burst then sudden silence — shock tactic.", notes: [n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), n('1', .5), rest(8)] },
+            { title: "Robotic Triplet Punch", tag: "loop", desc: "Triplets fully quantised — unnatural mechanical precision.", notes: [n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('5', .67), n('b5', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('1', .67), n('b7', .67), n('1', 1)] },
+            { title: "Paranoid 2-Note Repeat", tag: "loop", desc: "Same 2 notes cycling obsessively — minimal dread loop.", notes: [n('1', 2), n('b2', 2), n('1', 2), n('b2', 2), n('1', 2), n('b2', 2), n('1', 2), n('b2', 2)] },
+            { title: "Industrial Kick-Bass Lock", tag: "loop", desc: "Bass hits perfectly mirror kick pattern — stomping.", notes: [n('1', 1), rest(1), n('1', .5), rest(.5), n('1', 1), rest(1), n('1', .5), rest(.5), n('1', 1), rest(1), n('1', .5), rest(.5), n('5', 1), n('b5', 1), n('1', 2)] },
+            { title: "Sparse Threat", tag: "loop", desc: "3–4 notes across 2 bars — silence does the work.", notes: [n('1', 3), rest(5), n('b5', 3), rest(5), n('1', 4)] },
+            { title: "Silence Drop Hit", tag: "resp", desc: "Full bar silence then single massive low hit.", notes: [rest(8), n('1', 8)] },
+            { title: "Mechanical Chromatic Descent", tag: "sweep", desc: "Chromatic fall, quantised hard — clinical darkness.", notes: [n('5', 1), n('b5', 1), n('4', 1), n('b3', 1), n('2', 1), n('b2', 1), n('1', 2), n('5', 1), n('b5', 1), n('4', 1), n('b3', 1), n('2', 1), n('b2', 1), n('1', 4)] },
+            { title: "Ed Rush Offbeat Stab", tag: "loop", desc: "Hard offbeat stabs with dead gaps — Ed Rush signature.", notes: [rest(1), n('1', 1), rest(1), n('1', 1), rest(1), n('1', 1), rest(1), n('1', 1), rest(1), n('b5', 1), rest(1), n('1', 1), rest(1), n('1', 1), rest(2)] },
+            { title: "Tritone Machine Riff", tag: "loop", desc: "Tritone interval hammered mechanically — pure dissonance engine.", notes: [n('1', 1), n('b5', 1), n('1', 1), n('b5', 1), n('1', 1), n('b5', 1), n('1', 2), n('1', 1), n('b5', 1), n('1', 1), n('b5', 1), n('b7', 1), n('b5', 1), n('1', 2)] },
+            { title: "Phrygian Techstep Hook", tag: "loop", desc: "Phrygian b2 stab, zero swing, maximum edge.", notes: [n('1', 1), n('b2', 1), n('1', 1), n('b2', 1), n('b3', 1), n('b2', 1), n('1', 2), n('b2', 1), n('1', 1), n('b2', 1), n('b3', 1), n('b2', 2), n('1', 4)] },
+            { title: "Cold Interval Leap", tag: "call", desc: "Large interval jump, hard quantised, no glide — brutal.", notes: [n('1', 2), n('8', 2), n('1', 2), n('8', 2), n('b5', 2), n('8', 2), n('1', 4)] },
+            { title: "Sub Void Pulse", tag: "loop", desc: "Low sub pulsing on minimal beats — pressure not melody.", notes: [n('1', 2), rest(6), n('1', 2), rest(6), n('1', 2), rest(2)] },
+            { title: "Neuro Precision Riff (2-Bar)", tag: "loop", desc: "Complex neuro figure but robotically timed — precision.", notes: [n('1', 1), n('b3', .5), n('4', .5), n('b5', 1), n('4', .5), n('b3', .5), n('1', 1), n('b2', 1), n('1', 1), n('b3', .5), n('4', .5), n('5', 1), n('b5', .5), n('4', .5), n('b3', 1), n('1', 2)] },
+            { title: "Detuned Unison Stab", tag: "loop", desc: "Two notes a semitone apart hit simultaneously — gritty clash.", notes: [n('1', 1), n('b2', 1), n('1', 1), n('b2', 1), n('1', 1), n('b2', 1), n('1', 2), n('b2', 1), n('1', 1), n('b2', 1), n('1', 1), n('b2', 2), n('1', 4)] },
+            { title: "Techstep Ascending Threat", tag: "call", desc: "Slow chromatic climb, mechanical, ominous — rising dread.", notes: [n('1', 2), n('b2', 2), n('2', 2), n('b3', 2), n('3', 2), n('4', 2), n('b5', 2), n('5', 4)] },
+            { title: "Anti-Groove Pattern", tag: "loop", desc: "Intentionally fights the kick — tension through rhythmic clash.", notes: [rest(1), n('1', 1), rest(.5), n('1', .5), rest(1), n('b5', 1), rest(.5), n('1', .5), rest(1), n('1', 1), rest(1), n('b7', 1), rest(1), n('1', 2), rest(1)] },
+            { title: "Paranoid b2 Oscillation", tag: "loop", desc: "Root and b2 alternating rapidly — anxiety, claustrophobia.", notes: [n('1', .5), n('b2', .5), n('1', .5), n('b2', .5), n('1', .5), n('b2', .5), n('1', .5), n('b2', .5), n('1', .5), n('b2', .5), n('1', .5), n('b2', .5), n('1', .5), n('b2', .5), n('1', 2)] },
+            { title: "Full Techstep 2-Bar Riff", tag: "loop", desc: "Complete techstep motif — all elements combined.", notes: [n('1', 1), n('b2', 1), n('1', .5), n('b5', .5), n('1', 1), rest(1), n('b3', .5), n('4', .5), n('b5', 1), n('b3', 1), n('1', 1), n('b2', 1), n('1', 1), rest(1), n('5', .5), n('b5', .5), n('4', 1), n('b3', 1), n('1', 2), rest(2)] },
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // RHYTHMS VOL.1 — Core Grooves (01–20)
+        // ═══════════════════════════════════════════════════════════
+        const RHYTHMS1 = [
+            { title: "Straight Sub Groove", tag: "sub", desc: "Every beat hit, no ghost — pure sub pump.", steps: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0] },
+            { title: "Amen Skeleton", tag: "break", desc: "Core Amen break hits stripped to bass-friendly skeleton.", steps: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0] },
+            { title: "16th Offbeat Stabs", tag: "stab", desc: "Every offbeat 16th — relentless stabbing energy.", steps: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0] },
+            { title: "Syncopated Sub Pump", tag: "sub", desc: "Anticipates the beat by one 16th — push feel.", steps: [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0] },
+            { title: "Triplet Ghost Roll", tag: "swing", desc: "Triplet-spaced ghosts building to accented hits.", steps: [1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0, 0.5, 0, 0, 1] },
+            { title: "Two-Step Bass", tag: "break", desc: "Two-step pattern — the garage/jump-up foundation.", steps: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0] },
+            { title: "Stutter 16th Fill", tag: "fill", desc: "Rapid 16th fill into a rest — burst and breathe.", steps: [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Kick Pattern Lock", tag: "sub", desc: "Bass mirrors a typical DnB kick pattern exactly.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0] },
+            { title: "Half-Bar Repeat Motif", tag: "loop", desc: "4-step pattern repeated 4x — hypnotic loop.", steps: [1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0, 0] },
+            { title: "Sparse Heavy Hits", tag: "sub", desc: "Very few hits, each one massive — space as weight.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] },
+            { title: "Swung 8th Groove", tag: "swing", desc: "Swung 8ths — humanised, MPC-style groove.", steps: [1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0] },
+            { title: "Call Rhythm / Response Silence", tag: "stab", desc: "Busy bar 1 answered by near-silence bar 2.", steps: [1, 0, 1, 0, 1, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Dotted 8th Bounce", tag: "swing", desc: "Dotted 8th rhythm — the reggae/bounce feel.", steps: [1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 1, 0] },
+            { title: "Tail End Triplet", tag: "fill", desc: "Triplet burst at the end of bar 2 — momentum filler.", steps: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0.5, 0, 1] },
+            { title: "Offbeat Only Groove", tag: "stab", desc: "All hits land off the beat — pure offbeat energy.", steps: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0] },
+            { title: "Alternating Bar Density", tag: "break", desc: "Bar 1 dense, bar 2 sparse — creates breathing room.", steps: [1, 0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] },
+            { title: "Funk 16th with Ghosts", tag: "swing", desc: "Ghost 16ths weaving through accented hits — funky texture.", steps: [1, 0, 0.5, 0, 1, 0, 0.5, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 0.5, 0, 1, 0, 1, 0, 0.5, 0] },
+            { title: "End Bar Explosion", tag: "fill", desc: "Bar 2 ends in a burst of 16ths — explosive fill.", steps: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1] },
+            { title: "3-against-4 Polyrhythm", tag: "break", desc: "3-note grouping inside a 4/4 bar — cross-rhythm feel.", steps: [1, 0, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 1, 0, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 0] },
+            { title: "Sub Only / Stab Only Bars", tag: "stab", desc: "Bar 1 all subs, bar 2 all stabs — timbral contrast.", steps: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0] },
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // RHYTHMS VOL.2 — Intermediate Bridge (21–40)
+        // ═══════════════════════════════════════════════════════════
+        const RHYTHMS2 = [
+            { title: "Syncopated Kick-Bass Lock", tag: "sub", desc: "Bass anticipates the kick by a 16th — tight syncopation.", steps: [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Off-The-Beat Anchor", tag: "stab", desc: "Every hit lands just after the beat — push feel.", steps: [0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0] },
+            { title: "2-Bar Density Shift", tag: "loop", desc: "Bar 1 busy, bar 2 sparse — contrast as groove.", steps: [1, 0.5, 1, 0.5, 1, 0.5, 1, 0.5, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Amen Chop Basic", tag: "break", desc: "Simple 2-beat amen chop — clean and learnable.", steps: [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0] },
+            { title: "Half-Time Sub Feel", tag: "sub", desc: "Bass moves at half the rate — real weight.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] },
+            { title: "Swung 16th Pump", tag: "swing", desc: "16ths with MPC-style swing — humanised feel.", steps: [1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0, 0] },
+            { title: "Ghost 16th Skeleton", tag: "swing", desc: "Ghost notes only, no accented hits — pure texture.", steps: [0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0, 0] },
+            { title: "Staggered Octave Rhythm", tag: "loop", desc: "Root on beat, octave on offbeat — simple counterpoint.", steps: [1, 0, 0, 0, 0.5, 0, 0, 0, 1, 0, 0, 0, 0.5, 0, 0, 0, 1, 0, 0, 0, 0.5, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0] },
+            { title: "Bar 2 Delay Hit", tag: "fill", desc: "Pattern plays bar 1, single delayed hit bar 2 — surprise.", steps: [1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] },
+            { title: "Kick Anticipation Groove", tag: "sub", desc: "Bass hits 1 16th before every kick — locks tight.", steps: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0] },
+            { title: "Sparse Triplet Intro", tag: "tri", desc: "3 triplet hits per bar max — restrained poly feel.", steps: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Think Break Skeleton", tag: "break", desc: "Think break-derived bass rhythm — classic jump-up feel.", steps: [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0] },
+            { title: "Apache Groove Adapt", tag: "break", desc: "Apache-feel bass rhythm — laid-back heavy.", steps: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0] },
+            { title: "Reverse Accent Pattern", tag: "loop", desc: "Accents on weak beats only — fights the grid.", steps: [0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Sub Pump Offbeat", tag: "sub", desc: "Sub hits on every offbeat 8th — engine feel.", steps: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0] },
+            { title: "Broken 2-Step", tag: "break", desc: "2-step with one hit removed per bar — limping groove.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Pre-Drop Build Rhythm", tag: "fill", desc: "Increasing density across 2 bars — tension builder.", steps: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1] },
+            { title: "Bass Dropout Bar", tag: "loop", desc: "Full bar of silence — dramatic space.", steps: [1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Kick Mirror Exact", tag: "sub", desc: "Bass mirrors kick rhythm exactly — maximum lock.", steps: [1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0] },
+            { title: "Triplet to 16th Shift", tag: "fill", desc: "Bar 1 triplet feel, bar 2 switches to straight 16ths.", steps: [1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0] },
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // RHYTHMS VOL.3 — Advanced Poly & Euclidean (41–60)
+        // ═══════════════════════════════════════════════════════════
+        const RHYTHMS3 = [
+            { title: "Dotted Quarter Pulse", tag: "poly", desc: "Dotted quarter hits cycle across the bar — hemiola feel.", steps: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0] },
+            { title: "True 8th Triplets", tag: "tri", desc: "Pure triplet 8ths across 2 bars — swing lattice.", steps: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0] },
+            { title: "Quarter Triplet Groove", tag: "tri", desc: "Quarter-note triplets across a 4/4 bar — 3-against-4.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Dotted 8th + 16th Push", tag: "poly", desc: "Dotted 8th followed by 16th — the classic push.", steps: [1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0.5, 1, 0, 0, 0] },
+            { title: "5-against-4 Cycle", tag: "poly", desc: "5 evenly spaced hits across 4 beats — polymetric cycle.", steps: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Triplet Clave (3-2)", tag: "tri", desc: "Son clave in triplet feel — 3-2 over DnB grid.", steps: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Hemiola Bass Lock", tag: "poly", desc: "3-beat grouping in a 4-beat bar — metric ambiguity.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Ghost Triplet Swing", tag: "tri", desc: "Ghost triplets weaving through the bar — subtle poly texture.", steps: [1, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 1, 0, 0, 0, 0] },
+            { title: "Dotted Quarter + Fill", tag: "poly", desc: "Dotted quarter groove then 16th fill at the end.", steps: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "7-against-8 Stutter", tag: "poly", desc: "7 hits in the space of 8 — rhythmic stutter feel.", steps: [1, 0, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Syncopated Triplet Run", tag: "tri", desc: "Triplets with syncopated accents — complex rhythmic feel.", steps: [1, 0, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 0, 0.5, 0, 0, 1, 0, 0, 0.5, 0, 0, 0, 0, 0, 1, 0, 0, 0.5, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 0, 0.5, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Dotted 16th Micro-Groove", tag: "poly", desc: "Dotted 16th groupings — micro-rhythmic texture.", steps: [1, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 0.5, 0, 0, 1] },
+            { title: "4-against-3 Superimposition", tag: "poly", desc: "4 evenly spaced hits over a 3-beat sub-bar — superimposition.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Triplet Pump + Silence", tag: "tri", desc: "Triplet pump for bar 1, silence for bar 2 — maximum space.", steps: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Neuro Machine Gun Triplet", tag: "tri", desc: "Dense triplet assault — pure machine energy.", steps: [1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0, 1, 0.5, 0] },
+            { title: "Euclidean E(3,8)", tag: "poly", desc: "E(3,8) — evenly distribute 3 hits across 8 slots. Entry-level Euclidean.", steps: [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0] },
+            { title: "Euclidean E(5,8)", tag: "poly", desc: "E(5,8) — 5 hits across 8 slots. Dense and driving.", steps: [1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0] },
+            { title: "Euclidean E(5,16)", tag: "poly", desc: "E(5,16) — 5 hits across 16 slots. Spacious poly feel.", steps: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0] },
+            { title: "Euclidean E(7,16)", tag: "poly", desc: "E(7,16) — 7 hits across 16 slots. Complex and musical.", steps: [1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0] },
+            { title: "Quintuplet Cascade", tag: "poly", desc: "5-note groupings inside 4/4 — polymetric cascade.", steps: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0] },
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // RHYTHMS VOL.4 — Techstep Rhythms (61–80)
+        // ═══════════════════════════════════════════════════════════
+        const RHYTHMS4 = [
+            { title: "Quantised 16th Assault", tag: "mech", desc: "Pure 16ths, zero swing — machine feel, no humanity.", steps: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] },
+            { title: "Kick-Bass Exactlock", tag: "mech", desc: "Every kick hit doubled by bass exactly — total lock.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0] },
+            { title: "16th Burst + Silence", tag: "mech", desc: "4–6 16th hits then dead stop — paranoid.", steps: [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Offbeat 8th Stab Grid", tag: "mech", desc: "Every offbeat 8th hit, no variation — relentless.", steps: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0] },
+            { title: "Mechanical Syncopation", tag: "mech", desc: "Syncopated but fully quantised — cold precision.", steps: [1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0] },
+            { title: "Robotic Triplet Burst", tag: "mech", desc: "Short triplet runs quantised hard — robotic.", steps: [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0] },
+            { title: "Anti-Swing 16ths", tag: "mech", desc: "16ths pushed slightly early — fights natural swing.", steps: [1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1] },
+            { title: "Industrial Stomp Pattern", tag: "mech", desc: "Slow, heavy hits — stomping industrial weight.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0] },
+            { title: "Sparse Dread Pulse", tag: "mech", desc: "2–3 hits per bar maximum — space as threat.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Single Hit Per Bar", tag: "mech", desc: "One bass hit, perfectly placed — maximum restraint.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Ed Rush Stagger", tag: "mech", desc: "Slightly staggered pairs of 16ths — mechanical lurch.", steps: [1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Paranoid Repeat Lock", tag: "mech", desc: "Same rhythm loops with no variation — obsessive.", steps: [1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0] },
+            { title: "Pre-Beat Ghost Assault", tag: "mech", desc: "Cluster of ghosts just before the beat — tension.", steps: [0.5, 0.5, 0.5, 1, 0, 0, 0, 0, 0.5, 0.5, 0.5, 1, 0, 0, 0, 0, 0.5, 0.5, 0.5, 1, 0, 0, 0, 0, 0.5, 0.5, 0.5, 1, 0, 0, 0, 0] },
+            { title: "Death March Half-Time", tag: "mech", desc: "Half-time stomp — slow and brutal.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "16th Grid Dropout", tag: "mech", desc: "Full 16th grid with random holes punched out.", steps: [1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0] },
+            { title: "3-Hit Mechanical Motif", tag: "mech", desc: "Only 3 hits per bar, perfectly quantised — minimal.", steps: [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Kick Anticipate + Lock", tag: "mech", desc: "Anticipates kick then locks to it — technical.", steps: [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Burst + Half-Time Drop", tag: "mech", desc: "Machine-gun 16ths bar 1, half-time stomp bar 2.", steps: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+            { title: "Euclidean E(5,16) Quantised", tag: "mech", desc: "E(5,16) Euclidean but mechanically exact — cold poly.", steps: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0] },
+            { title: "Full Techstep Rhythm (2-Bar)", tag: "mech", desc: "Complete 2-bar techstep rhythm — all elements.", steps: [1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0] },
+        ];
+
+        // ═══════════════════════════════════════════════════════════
+        // BREAKBEAT REFERENCE DATA
+        // ═══════════════════════════════════════════════════════════
+        const BREAKS = [
+            {
+                name: "Amen Brother", orig: 136, color: "#52bb00",
+                kick: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                hat: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+            },
+            {
+                name: "Think Break", orig: 102, color: "#00a8bb",
+                kick: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                hat: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]
+            },
+            {
+                name: "Apache", orig: 98, color: "#c07c00",
+                kick: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                hat: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+            },
+            {
+                name: "Funky Drummer", orig: 109, color: "#9050e0",
+                kick: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0, 1, 0, 0, 0.5, 0, 0.5, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0.5, 0, 0.5, 0, 1, 0, 0, 1, 0],
+                hat: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+            },
+            {
+                name: "The Big Beat", orig: 120, color: "#bb2e52",
+                kick: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                hat: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0]
+            },
+            {
+                name: "Wipe Out", orig: 143, color: "#00a8bb",
+                kick: [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                hat: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+            },
+            {
+                name: "Classic Two-Step", orig: 170, color: "#00c8ff",
+                kick: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                hat: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+            },
+            {
+                name: "Two-Step Bounce", orig: 170, color: "#40c878",
+                kick: [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+                hat: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+            },
+            {
+                name: "The Steppa", orig: 170, color: "#9050e0",
+                kick: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                snare: [0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0],
+                hat: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0]
+            },
+            {
+                name: "The Stampa", orig: 170, color: "#c07c00",
+                kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                hat: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+            },
+            {
+                name: "Dancehall / UK Apache", orig: 138, color: "#bb2e52",
+                kick: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0],
+                snare: [0, 1, 0, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0, 0, 0, 0.5, 0, 1, 0, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0, 0, 0, 0.5],
+                hat: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+            },
+            {
+                name: "Dimension UK (4/4)", orig: 174, color: "#00a8bb",
+                kick: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+                snare: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.5, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.5, 1],
+                hat: [0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0, 0.5, 0, 1, 0]
+            },
+            {
+                name: "Extended Steppa", orig: 174, color: "#40c878",
+                kick: [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0],
+                snare: [0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 1, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 1, 0, 0, 0],
+                hat: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0]
+            },
+            {
+                name: "Halftime / Drumstep", orig: 85, color: "#9050e0",
+                kick: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0, 0, 0.5, 0, 0],
+                hat: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+            },
+            {
+                name: "Footwork Jungle", orig: 160, color: "#c07c00",
+                kick: [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+                snare: [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                hat: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+            },
+            {
+                name: "Triplet Two-Step", orig: 170, color: "#bb2e52",
+                kick: [1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                snare: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                hat: [0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0]
+            },
+        ];
+
+
+        // ═══════════════════════════════════════════════════════════
+        // AUDIO ENGINE
+        // ═══════════════════════════════════════════════════════════
+        let audioCtx = null, masterGain = null, subGain = null, filterNode = null;
+        let currentWave = 'dual';
+        let POOL_SIZE = 6;
+        let voicePool = [];
+        let voiceRR = 0;
+
+        function ensureAudio() {
+            if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            filterNode = audioCtx.createBiquadFilter();
+            filterNode.type = 'lowpass'; filterNode.frequency.value = 800; filterNode.Q.value = 1.2;
+            masterGain = audioCtx.createGain(); masterGain.gain.value = parseFloat(document.querySelector('.vol-slider').value);
+            subGain = audioCtx.createGain(); subGain.gain.value = parseFloat(document.querySelector('.sub-slider').value);
+            filterNode.connect(masterGain); masterGain.connect(audioCtx.destination);
+            subGain.connect(masterGain);
+            initPool();
+        }
+
+        function initPool() {
+            voicePool = [];
+            for (let i = 0; i < POOL_SIZE; i++) {
+                const oSaw1 = audioCtx.createOscillator();
+                const oSaw2 = audioCtx.createOscillator();
+                const oSq = audioCtx.createOscillator();
+                const oSub = audioCtx.createOscillator();
+                const gSaw1 = audioCtx.createGain();
+                const gSaw2 = audioCtx.createGain();
+                const gSq = audioCtx.createGain();
+                const gSub = audioCtx.createGain();
+                const gEnv = audioCtx.createGain();
+
+                oSaw1.type = 'sawtooth'; oSaw2.type = 'sawtooth';
+                oSq.type = 'square'; oSub.type = 'sine';
+                oSaw1.detune.value = +24; oSaw2.detune.value = -24;
+
+                oSaw1.connect(gSaw1); gSaw1.connect(gEnv);
+                oSaw2.connect(gSaw2); gSaw2.connect(gEnv);
+                oSq.connect(gSq); gSq.connect(gEnv);
+                // gEnv → wsNode → filterNode (wsNode.curve=null = transparent bypass)
+                const wsNode = audioCtx.createWaveShaper();
+                wsNode.oversample = '4x';
+                gEnv.connect(wsNode); wsNode.connect(filterNode);
+                oSub.connect(gSub); gSub.connect(subGain);
+
+                gEnv.gain.value = 0; gSub.gain.value = 0;
+                gSaw1.gain.value = 0.5; gSaw2.gain.value = 0.5;
+                gSq.gain.value = 0;
+
+                oSaw1.start(); oSaw2.start(); oSq.start(); oSub.start();
+                voicePool.push({ oSaw1, oSaw2, oSq, oSub, gSaw1, gSaw2, gSq, gSub, gEnv, wsNode });
+            }
+
+            voicePool._rsub = audioCtx.createOscillator();
+            voicePool._rsg = audioCtx.createGain();
+            voicePool._rclick = audioCtx.createOscillator();
+            voicePool._rcg = audioCtx.createGain();
+            voicePool._rsub.type = 'sine'; voicePool._rsub.frequency.value = rootHz();
+            voicePool._rclick.type = 'square'; voicePool._rclick.frequency.value = rootHz() * 3;
+            voicePool._rsg.gain.value = 0; voicePool._rcg.gain.value = 0;
+            voicePool._rsub.connect(voicePool._rsg); voicePool._rsg.connect(subGain);
+            voicePool._rclick.connect(voicePool._rcg); voicePool._rcg.connect(masterGain);
+            voicePool._rsub.start(); voicePool._rclick.start();
+        }
+
+        function setWaveMode(mode) {
+            currentWave = mode;
+            if (!voicePool.length) return;
+            for (const v of voicePool) {
+                if (!v.gSaw1) continue;
+                const now = audioCtx ? audioCtx.currentTime : 0;
+                switch (mode) {
+                    case 'dual':
+                        v.oSaw1.type = 'sawtooth';
+                        v.gSaw1.gain.setValueAtTime(.5, now); v.gSaw2.gain.setValueAtTime(.5, now); v.gSq.gain.setValueAtTime(0, now); break;
+                    case 'saw':
+                        v.oSaw1.type = 'sawtooth';
+                        v.gSaw1.gain.setValueAtTime(1, now); v.gSaw2.gain.setValueAtTime(0, now); v.gSq.gain.setValueAtTime(0, now); break;
+                    case 'square':
+                        v.oSaw1.type = 'sawtooth';
+                        v.gSaw1.gain.setValueAtTime(0, now); v.gSaw2.gain.setValueAtTime(0, now); v.gSq.gain.setValueAtTime(1, now); break;
+                    case 'sine':
+                        // Repurpose oSaw1 as a sine through the filter at the correct octave
+                        v.oSaw1.type = 'sine';
+                        v.gSaw1.gain.setValueAtTime(1, now); v.gSaw2.gain.setValueAtTime(0, now); v.gSq.gain.setValueAtTime(0, now); break;
+                }
+            }
+        }
+
+        // ── Item #1: Smart voice acquisition — prefer silent voices ───
+        function acquireVoice() {
+            // Scan pool looking for a voice already at silence on both paths
+            for (let i = 0; i < POOL_SIZE; i++) {
+                const candidate = voicePool[(voiceRR + i) % POOL_SIZE];
+                if (candidate.gEnv.gain.value < 0.01 && candidate.gSub.gain.value < 0.01) {
+                    voiceRR = (voiceRR + i + 1) % POOL_SIZE;
+                    return candidate;
+                }
+            }
+            // All voices busy — fall back to round-robin (least-recently-used)
+            return voicePool[voiceRR++ % POOL_SIZE];
+        }
+
+        // ── Item #2: Unified voice body — no more duplicate code ─────
+        function fireVoice(freq, dur, glideToFreq, t, envAmp, subAmp) {
+            if (!voicePool.length) return;
+            const v = acquireVoice();
+            const atk = 0.007, rel = Math.min(0.018, dur * .12);
+            const hold = Math.max(0, dur - atk - rel);
+            // Mute sub when in sine mode (sine plays through filter at correct octave)
+            const effSub = (currentWave === 'sine') ? 0 : subAmp;
+
+            for (const o of [v.oSaw1, v.oSaw2, v.oSq]) {
+                o.frequency.cancelScheduledValues(t);
+                o.frequency.setValueAtTime(freq, t);
+                if (glideToFreq) o.frequency.linearRampToValueAtTime(glideToFreq, t + dur);
+            }
+            v.oSub.frequency.cancelScheduledValues(t);
+            v.oSub.frequency.setValueAtTime(freq / 2, t);
+            if (glideToFreq) v.oSub.frequency.linearRampToValueAtTime(glideToFreq / 2, t + dur);
+
+            v.gEnv.gain.cancelScheduledValues(t);
+            v.gEnv.gain.setValueAtTime(0, t);
+            v.gEnv.gain.linearRampToValueAtTime(envAmp, t + atk);
+            v.gEnv.gain.setValueAtTime(envAmp, t + atk + hold);
+            v.gEnv.gain.linearRampToValueAtTime(0, t + dur);
+
+            v.gSub.gain.cancelScheduledValues(t);
+            v.gSub.gain.setValueAtTime(0, t);
+            v.gSub.gain.linearRampToValueAtTime(effSub, t + 0.01);
+            v.gSub.gain.setValueAtTime(effSub, t + atk + hold);
+            v.gSub.gain.linearRampToValueAtTime(0, t + dur);
+        }
+
+        function fireNote(freq, dur, glideToFreq, t) {
+            fireVoice(freq, dur, glideToFreq, t, 0.35, 0.55);
+        }
+
+        function fireRhythmHit(vel, stepDur, t) {
+            const rs = voicePool._rsub, rg = voicePool._rsg;
+            const rc = voicePool._rclick, rcg = voicePool._rcg;
+            const amp = vel === 1 ? 0.55 : 0.18;
+
+            rg.gain.cancelScheduledValues(t);
+            rg.gain.setValueAtTime(0, t);
+            rg.gain.linearRampToValueAtTime(amp, t + 0.005);
+            rg.gain.setValueAtTime(amp, t + stepDur * .5);
+            rg.gain.linearRampToValueAtTime(0, t + stepDur * .85);
+
+            rcg.gain.cancelScheduledValues(t);
+            rcg.gain.setValueAtTime(0, t);
+            rcg.gain.linearRampToValueAtTime(vel === 1 ? .1 : .035, t + 0.002);
+            rcg.gain.linearRampToValueAtTime(0, t + 0.022);
+        }
+
+        function fireCombinedHit(freq, dur, glideToFreq, vel, t) {
+            const amp = vel < 1 ? 0.18 : 0.28;
+            fireVoice(freq, dur, glideToFreq, t, amp, amp * 0.8);
+        }
+
+        function silencePool() {
+            if (!voicePool.length || !audioCtx) return;
+            const now = audioCtx.currentTime;
+            for (const v of voicePool) {
+                if (!v.gEnv) continue;
+                v.gEnv.gain.cancelScheduledValues(now); v.gEnv.gain.setValueAtTime(0, now);
+                v.gSub.gain.cancelScheduledValues(now); v.gSub.gain.setValueAtTime(0, now);
+            }
+            if (voicePool._rsg) {
+                voicePool._rsg.gain.cancelScheduledValues(now); voicePool._rsg.gain.setValueAtTime(0, now);
+                voicePool._rcg.gain.cancelScheduledValues(now); voicePool._rcg.gain.setValueAtTime(0, now);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // SCHEDULER STATE
+        // ═══════════════════════════════════════════════════════════
+        let loopEnabled = true;
+        let currentBpm = 172;
+        let nudgeSubMs = 0;     // anchors sub-bass / rhythm hits to grid
+        let nudgeGrooveMs = 0;  // offsets mid-bass / melody ghost notes
+        let activeCard = null;
+        let lastPlayedFn = null;
+
+        const LOOKAHEAD_MS = 25;
+        const SCHEDULE_AHEAD = 0.10;
+
+        function getBeatDur() { return (60 / currentBpm) / 4; }
+
+        // ═══════════════════════════════════════════════════════════
+        // DRUM SYNTHESISER
+        // ═══════════════════════════════════════════════════════════
+        function synthKick(t, vel = 1) {
+            if (!audioCtx) return;
+            const g = audioCtx.createGain();
+            const osc = audioCtx.createOscillator();
+            g.connect(masterGain);
+            osc.connect(g);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(160, t);
+            osc.frequency.exponentialRampToValueAtTime(40, t + 0.045);
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(vel * 0.9, t + 0.004);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+            osc.start(t);
+            osc.stop(t + 0.2);
+        }
+
+        function synthSnare(t, vel = 1) {
+            if (!audioCtx) return;
+            const dur = 0.14;
+            const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buf;
+            const hpf = audioCtx.createBiquadFilter();
+            hpf.type = 'highpass'; hpf.frequency.value = 1800;
+            const ng = audioCtx.createGain();
+            noise.connect(hpf); hpf.connect(ng); ng.connect(masterGain);
+            ng.gain.setValueAtTime(vel * 0.55, t);
+            ng.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            noise.start(t); noise.stop(t + dur);
+
+            const osc = audioCtx.createOscillator();
+            const og = audioCtx.createGain();
+            osc.connect(og); og.connect(masterGain);
+            osc.type = 'triangle'; osc.frequency.value = 180;
+            og.gain.setValueAtTime(vel * 0.25, t);
+            og.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+            osc.start(t); osc.stop(t + 0.07);
+        }
+
+        function synthHat(t, vel = 1, open = false) {
+            if (!audioCtx) return;
+            const dur = open ? 0.25 : 0.045;
+            const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
+            const data = buf.getChannelData(0);
+            for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+            const src = audioCtx.createBufferSource();
+            src.buffer = buf;
+            const bpf = audioCtx.createBiquadFilter();
+            bpf.type = 'bandpass'; bpf.frequency.value = 9000; bpf.Q.value = 0.7;
+            const hg = audioCtx.createGain();
+            src.connect(bpf); bpf.connect(hg); hg.connect(masterGain);
+            hg.gain.setValueAtTime(vel * 0.3, t);
+            hg.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            src.start(t); src.stop(t + dur + 0.01);
+        }
+
+        function breakEvents(brk) {
+            const bd = getBeatDur();
+            const events = [];
+            const N = brk.kick.length;
+            for (let i = 0; i < N; i++) {
+                const t = i * bd;
+                if (brk.kick[i]) events.push({ time: t, fire: at => synthKick(at, brk.kick[i]) });
+                if (brk.snare[i]) events.push({ time: t, fire: at => synthSnare(at, brk.snare[i]) });
+                if (brk.hat[i]) events.push({ time: t, fire: at => synthHat(at, brk.hat[i]) });
+            }
+            events.sort((a, b) => a.time - b.time);
+            return { events, totalDur: N * bd };
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // LOOKAHEAD SCHEDULER
+        // ═══════════════════════════════════════════════════════════
+
+        function stopActiveCard() {
+            if (!activeCard) return;
+            clearInterval(activeCard.clockId);
+            clearTimeout(activeCard.stopTo);
+            clearTimeout(activeCard.phTo);
+            silencePool();
+            if (activeCard.el && activeCard.el.classList) {
+                activeCard.el.classList.remove('playing');
+            }
+            const p = activeCard.progEl;
+            if (p) { p.style.transition = 'none'; p.style.width = '0%'; }
+            activeCard = null;
+
+            const gBtn = document.getElementById('globalPlayBtn');
+            if (gBtn) { gBtn.textContent = '▶ PLAY'; gBtn.classList.remove('playing'); }
+        }
+
+        function startProgress(el, dur) {
+            el.style.transition = 'none'; el.style.width = '0%';
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                el.style.transition = `width ${dur}s linear`; el.style.width = '100%';
+            }));
+        }
+
+        function startLookahead(events, totalDur, cardEl, progEl, onDone, onLoop) {
+            ensureAudio();
+            stopActiveCard();
+            if (cardEl && cardEl.classList) cardEl.classList.add('playing');
+            const loopStart = audioCtx.currentTime + 0.05;
+            let nextIdx = 0, lastLoopN = -1;
+            if (progEl) startProgress(progEl, totalDur);
+
+            const gBtn = document.getElementById('globalPlayBtn');
+            gBtn.textContent = '⏹ STOP'; gBtn.classList.add('playing');
+
+            function tick() {
+                if (!activeCard || activeCard.el !== cardEl) return;
+                const horizon = audioCtx.currentTime + SCHEDULE_AHEAD;
+                while (true) {
+                    const idx = nextIdx % events.length;
+                    const loopN = Math.floor(nextIdx / events.length);
+                    const evtT = loopStart + loopN * totalDur + events[idx].time;
+                    if (evtT > horizon) break;
+                    // Per-event nudge (subNudge or grooveNudge set at event build time)
+                    const nudgeSec = events[idx].nudge !== undefined ? events[idx].nudge : nudgeGrooveMs / 1000;
+                    const fireAt = Math.max(audioCtx.currentTime + 0.001, evtT + nudgeSec);
+                    events[idx].fire(fireAt);
+                    nextIdx++;
+                    if (idx === events.length - 1) {
+                        const endT = loopStart + (loopN + 1) * totalDur;
+                        if (!loopEnabled) {
+                            const ms = Math.max(0, (endT - audioCtx.currentTime) * 1000);
+                            activeCard.stopTo = setTimeout(() => {
+                                if (activeCard && activeCard.el === cardEl) { stopActiveCard(); if (onDone) onDone(); }
+                            }, ms);
+                            clearInterval(activeCard.clockId); return;
+                        }
+                        if (loopN !== lastLoopN) {
+                            lastLoopN = loopN;
+                            const ms = Math.max(0, (endT - audioCtx.currentTime) * 1000);
+                            activeCard.phTo = setTimeout(() => {
+                                if (!activeCard || activeCard.el !== cardEl) return;
+                                if (progEl) startProgress(progEl, totalDur);
+                                if (onLoop) onLoop(totalDur);
+                            }, ms);
+                        }
+                    }
+                }
+            }
+            const clockId = setInterval(tick, LOOKAHEAD_MS);
+            tick();
+            activeCard = { el: cardEl, progEl, clockId, stopTo: null, phTo: null };
+        }
+
+        function pitchEvents(pat) {
+            const bd = getBeatDur() * 2; // ×2: 8th-note base = musical phrase feel
+            const notes = resolveNotes(pat.notes);
+            const events = []; let t = 0;
+            for (let i = 0; i < notes.length; i++) {
+                const nt = notes[i], dur = nt.dur * bd;
+                if (nt.f > 0) {
+                    const glide = (nt.glide && i + 1 < notes.length && notes[i + 1].f > 0) ? notes[i + 1].f : null;
+                    const cf = nt.f, cd = dur, cg = glide;
+                    // Melody notes use grooveNudge (offbeat feel)
+                    events.push({ time: t, nudge: nudgeGrooveMs / 1000, fire: at => fireNote(cf, cd, cg, at) });
+                }
+                t += dur;
+            }
+            return { events, totalDur: t };
+        }
+
+        function rhythmEvents(rhy) {
+            const bd = getBeatDur(), events = [];
+            rhy.steps.forEach((vel, i) => {
+                // Rhythm hits use subNudge (locked to kick grid)
+                if (vel > 0) events.push({ time: i * bd, nudge: nudgeSubMs / 1000, fire: at => fireRhythmHit(vel, bd, at) });
+            });
+            return { events, totalDur: rhy.steps.length * bd };
+        }
+
+        function combinedEvents(pat, rhy) {
+            const bd = getBeatDur();
+            const seq = buildCombinedSequence(pat, rhy);
+            const events = [];
+            seq.forEach(hit => {
+                const t = hit.stepIdx * bd;
+                const glide = hit.glide ? hit.nextFreq : null;
+                // Combined: groove nudge on melody-driven hits (they carry the motif feel)
+                events.push({ time: t, nudge: nudgeGrooveMs / 1000, fire: at => fireCombinedHit(hit.freq, bd * 1.5, glide, hit.vel, at) });
+            });
+            const totalDur = rhy.steps.length * bd;
+            return { events, totalDur };
+        }
+
+        function playPitchCard(pat, cardEl, progEl) {
+            const { events, totalDur } = pitchEvents(pat);
+            startLookahead(events, totalDur, cardEl, progEl, null, null);
+        }
+        function playRhythmCard(rhy, cardEl, progEl) {
+            const { events, totalDur } = rhythmEvents(rhy);
+            startLookahead(events, totalDur, cardEl, progEl, null, null);
+        }
+        function playBreakCard(brk, cardEl, progEl) {
+            const { events, totalDur } = breakEvents(brk);
+            lastPlayedFn = () => playBreakCard(brk, cardEl, progEl);
+            startLookahead(events, totalDur, cardEl, progEl, null, null);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // DRAWING GRIDS / CANVAS
+        // ═══════════════════════════════════════════════════════════
+        const tagColors = { call: '#008fa0', resp: '#a02848', loop: '#48a000', sweep: '#a06800', fill: '#0088a0' };
+        const rtagColors = {
+            sub: '#7840d0', stab: '#a02848', swing: '#a06800', break: '#48a000',
+            fill: '#0088a0', loop: '#48a000', poly: '#a05800', tri: '#a03098', mech: '#e05020'
+        };
+
+        // ── Item #5: HiDPI helper — call at the top of every draw function ──
+        function makeHiDPI(canvas) {
+            const dpr = window.devicePixelRatio || 1;
+            const { width, height } = canvas.getBoundingClientRect();
+            const W = Math.round((width || canvas.width) * dpr);
+            const H = Math.round((height || canvas.height) * dpr);
+            if (canvas.width !== W || canvas.height !== H) {
+                canvas.width = W;
+                canvas.height = H;
+            }
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            const logW = canvas.width / dpr;
+            const logH = canvas.height / dpr;
+            return { ctx, W: logW, H: logH };
+        }
+
+        function drawPitchCurve(canvas, notesRaw, color = '#008fa0') {
+            const notes = resolveNotes(notesRaw);
+            const { ctx, W, H } = makeHiDPI(canvas);
+            ctx.clearRect(0, 0, W, H);
+            ctx.strokeStyle = 'rgba(20,40,55,0.7)'; ctx.lineWidth = 1;
+            for (let y = 0; y <= H; y += H / 4) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+            for (let x = 0; x <= W; x += W / 8) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+
+            const allF = notes.filter(n => n.f > 0).map(n => n.f);
+            if (!allF.length) return;
+            const minF = Math.min(...allF) * .92, maxF = Math.max(...allF) * 1.08;
+            const total = notes.reduce((s, n) => s + n.dur, 0);
+
+            function fToY(f) {
+                if (f <= 0) return H * .85;
+                const lMin = Math.log2(minF), lMax = Math.log2(maxF), lF = Math.log2(f);
+                return H - ((lF - lMin) / (lMax - lMin)) * (H * .82) - H * .09;
+            }
+
+            let pts = [], xPos = 0;
+            for (let i = 0; i < notes.length; i++) {
+                const nt = notes[i], nw = (nt.dur / total) * W;
+                if (nt.f > 0) {
+                    const y = fToY(nt.f);
+                    const nextNote = notes.slice(i + 1).find(n => n.f > 0);
+                    const nextY = nextNote ? fToY(nextNote.f) : y;
+                    if (nt.glide && nextNote) {
+                        const steps = Math.max(12, Math.floor(nw));
+                        for (let s = 0; s <= steps; s++) {
+                            const t = s / steps, sm = t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+                            pts.push({ x: xPos + t * nw, y: y + (nextY - y) * sm, active: true, dot: s === 0 });
+                        }
+                    } else {
+                        pts.push({ x: xPos, y, active: true, dot: true });
+                        pts.push({ x: xPos + nw - 1, y, active: true, dot: false });
+                        if (!nt.glide) pts.push({ x: xPos + nw - 1, y, active: false, dot: false });
+                    }
+                } else {
+                    pts.push({ x: xPos, y: H * .85, active: false, dot: false });
+                }
+                xPos += nw;
+            }
+
+            ctx.save();
+            ctx.shadowBlur = 6; ctx.shadowColor = color;
+            ctx.beginPath();
+            let inSeg = false;
+            for (let i = 0; i < pts.length; i++) {
+                const p = pts[i];
+                if (p.active) {
+                    if (!inSeg || (pts[i - 1] && !pts[i - 1].active)) { ctx.moveTo(p.x, p.y); inSeg = true; }
+                    else ctx.lineTo(p.x, p.y);
+                } else inSeg = false;
+            }
+            ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+            for (const p of pts) {
+                if (p.dot && p.active) {
+                    ctx.beginPath(); ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = color; ctx.shadowBlur = 8; ctx.fill();
+                }
+            }
+            const r = rootHz();
+            [r, r * 2].forEach(f => {
+                if (f >= minF && f <= maxF) {
+                    const y = fToY(f);
+                    ctx.strokeStyle = 'rgba(0,168,187,0.07)'; ctx.lineWidth = 1; ctx.setLineDash([3, 5]);
+                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); ctx.setLineDash([]);
+                }
+            });
+            ctx.restore();
+        }
+
+        function drawRhythmGrid(canvas, steps, color = '#a02848') {
+            const { ctx, W, H } = makeHiDPI(canvas);
+            ctx.clearRect(0, 0, W, H);
+            const N = steps.length, sw = W / N;
+            const barH = H * .72, barY = (H - barH) / 2;
+
+            ctx.fillStyle = 'rgba(20,40,55,0.4)';
+            for (let i = 0; i < N; i += 4) ctx.fillRect(i * sw, 0, sw * 4, H);
+            ctx.fillStyle = 'rgba(255,255,255,0.02)';
+            for (let i = 0; i < N; i++) ctx.fillRect(i * sw + 1, H - 2, sw - 2, 1);
+
+            for (let i = 0; i < N; i++) {
+                const vel = steps[i]; if (vel <= 0) continue;
+                const isGhost = vel < 1;
+                const x = i * sw + 1, w = Math.max(1, sw - 2);
+                const h = isGhost ? barH * .55 : barH;
+                const y = barY + (barH - h);
+                ctx.globalAlpha = isGhost ? .4 : 1;
+                ctx.fillStyle = color;
+                ctx.save();
+                ctx.shadowBlur = isGhost ? 0 : 6; ctx.shadowColor = color;
+                const r = 2;
+                ctx.beginPath();
+                ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+                ctx.closePath(); ctx.fill();
+                ctx.restore();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function drawBreakCanvas(canvas, kick, snare, hat, color) {
+            const { ctx, W, H } = makeHiDPI(canvas);
+            ctx.clearRect(0, 0, W, H);
+            const N = 32, sw = W / N;
+            const rows = [
+                { steps: kick, color, label: 'K' },
+                { steps: snare, color: '#a02848', label: 'S' },
+                { steps: hat, color: '#a06800', label: 'HH' },
+            ];
+            const rH = H / 3;
+            rows.forEach((row, ri) => {
+                const y0 = ri * rH;
+                ctx.fillStyle = `rgba(20,40,55,${ri % 2 ? 0.15 : 0.05})`;
+                ctx.fillRect(0, y0, W, rH);
+                for (let i = 0; i < N; i++) {
+                    if (!row.steps[i]) continue;
+                    const x = i * sw + 1, w = sw - 2, bh = rH * .6, by = y0 + (rH - bh) / 2;
+                    ctx.fillStyle = row.color;
+                    ctx.globalAlpha = row.steps[i] < 1 ? .35 : 1;
+                    ctx.shadowBlur = row.steps[i] < 1 ? 0 : 4; ctx.shadowColor = row.color;
+                    ctx.fillRect(x, by, w, bh);
+                    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+                }
+                ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                ctx.font = '10px Share Tech Mono';
+                ctx.fillText(row.label, 3, y0 + rH * .65);
+            });
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+            for (let i = 0; i < N; i += 4) {
+                ctx.beginPath(); ctx.moveTo(i * sw, 0); ctx.lineTo(i * sw, H); ctx.stroke();
+            }
+        }
+
+        // ── Item #3: IntersectionObserver — lazy canvas rendering ────
+        // Canvases set their draw function as ._drawFn and get observed.
+        // Drawing fires only when the canvas enters the viewport (+ 150px margin).
+        // Inactive tabs (display:none) won't fire until the tab is shown.
+        const canvasObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                const cv = entry.target;
+                if (cv._drawFn) { cv._drawFn(); delete cv._drawFn; }
+                canvasObserver.unobserve(cv);
+            });
+        }, { rootMargin: '150px 0px' });
+
+        function buildPitchGrid(containerId, patterns, offset, volLabel) {
+            const grid = document.getElementById(containerId);
+            if (volLabel) {
+                const div = document.createElement('div');
+                div.className = 'vol-divider';
+                div.textContent = volLabel;
+                grid.appendChild(div);
+            }
+            patterns.forEach((pat, i) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.title = pat.title.toLowerCase();
+                card.dataset.desc = (pat.desc || '').toLowerCase();
+                card.innerHTML = `
+      <div class="play-indicator"></div>
+      <div class="progress-bar"></div>
+      <div class="card-header">
+        <span class="card-num">${String(i + 1 + offset).padStart(2, '0')}</span>
+        <span class="card-title">${pat.title}</span>
+        <span class="tag ${pat.tag}">${pat.tag.toUpperCase()}</span>
+      </div>
+      <canvas class="waveform" width="600" height="150"></canvas>
+      <div class="card-desc">${pat.desc}</div>`;
+                grid.appendChild(card);
+                const cv = card.querySelector('canvas');
+                const redraw = () => drawPitchCurve(cv, pat.notes, tagColors[pat.tag]);
+                cv._redrawFn = redraw; // kept permanently for key-change redraws
+                cv._drawFn = redraw;   // consumed by IntersectionObserver on first view
+                canvasObserver.observe(cv);
+                const prog = card.querySelector('.progress-bar');
+                card.addEventListener('click', () => {
+                    if (activeCard && activeCard.el === card) stopActiveCard();
+                    else { lastPlayedFn = () => playPitchCard(pat, card, prog); playPitchCard(pat, card, prog); }
+                });
+            });
+        }
+
+        function buildRhythmGrid(containerId, rhythms, offset, volLabel) {
+            const grid = document.getElementById(containerId);
+            if (volLabel) {
+                const div = document.createElement('div');
+                div.className = 'vol-divider';
+                div.textContent = volLabel;
+                grid.appendChild(div);
+            }
+            rhythms.forEach((rhy, i) => {
+                const color = rtagColors[rhy.tag] || '#a02848';
+                const card = document.createElement('div');
+                card.className = 'rcard';
+                card.dataset.title = rhy.title.toLowerCase();
+                card.dataset.desc = (rhy.desc || '').toLowerCase();
+                card.innerHTML = `
+      <div class="rplay-indicator"></div>
+      <div class="rprogress-bar"></div>
+      <div class="rcard-header">
+        <span class="rcard-num">${String(i + 1 + offset).padStart(2, '0')}</span>
+        <span class="rcard-title">${rhy.title}</span>
+        <span class="rtag ${rhy.tag}">${rhy.tag.toUpperCase()}</span>
+      </div>
+      <canvas class="rwave" width="640" height="150"></canvas>
+      <div class="rcard-desc">${rhy.desc}</div>`;
+                grid.appendChild(card);
+                const cv = card.querySelector('canvas');
+                cv._drawFn = () => drawRhythmGrid(cv, rhy.steps, color);
+                canvasObserver.observe(cv);
+                const prog = card.querySelector('.rprogress-bar');
+                card.addEventListener('click', () => {
+                    if (activeCard && activeCard.el === card) stopActiveCard();
+                    else { lastPlayedFn = () => playRhythmCard(rhy, card, prog); playRhythmCard(rhy, card, prog); }
+                });
+            });
+        }
+
+        function buildBreaks() {
+            const grid = document.getElementById('breaks-grid');
+            BREAKS.forEach(brk => {
+                const card = document.createElement('div');
+                card.className = 'break-card';
+                const safeId = brk.name.replace(/\s/g, '_');
+                card.innerHTML = `
+      <div class="break-play-ind"></div>
+      <div class="break-prog"></div>
+      <div class="break-hdr">
+        <span class="break-name">${brk.name}</span>
+        <span class="break-orig">orig ~${brk.orig} BPM</span>
+        <span class="break-bpm-tag" id="bbt-${safeId}">@ ${currentBpm} BPM</span>
+      </div>
+      <canvas class="break-canvas" id="bkc-${safeId}" width="640" height="150"></canvas>
+      <div class="break-desc">K&nbsp;&nbsp;Kick &nbsp;&nbsp;·&nbsp;&nbsp; S&nbsp;&nbsp;Snare &nbsp;&nbsp;·&nbsp;&nbsp; HH&nbsp;&nbsp;Hi-Hat &nbsp;&nbsp;·&nbsp;&nbsp; click to audition</div>`;
+                grid.appendChild(card);
+                const cv = card.querySelector('canvas');
+                cv._drawFn = () => drawBreakCanvas(cv, brk.kick, brk.snare, brk.hat, brk.color);
+                canvasObserver.observe(cv);
+                const prog = card.querySelector('.break-prog');
+                card.addEventListener('click', () => {
+                    if (activeCard && activeCard.el === card) stopActiveCard();
+                    else playBreakCard(brk, card, prog);
+                });
+            });
+        }
+
+        function updateBreakBpmTags() {
+            BREAKS.forEach(brk => {
+                const el = document.getElementById(`bbt-${brk.name.replace(/\s/g, '_')}`);
+                if (el) el.textContent = `@ ${currentBpm} BPM`;
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // COMBINE PAGE
+        // ═══════════════════════════════════════════════════════════
+        const ALL_PATTERNS = [...PATTERNS1, ...PATTERNS2, ...PATTERNS3, ...PATTERNS4, ...PATTERNS5];
+        const ALL_RHYTHMS = [...RHYTHMS1, ...RHYTHMS2, ...RHYTHMS3, ...RHYTHMS4];
+
+        let combineSelectedPitch = null;
+        let combineSelectedRhythm = null;
+        let combineSelectedBreak = null;
+
+        // ─── Combine lists: built ONCE (no innerHTML wipe on click) ─────────
+        function buildCombinePitchList(filter = '') {
+            const list = document.getElementById('combine-pitch-list');
+            // If list is empty or filter changed: full rebuild
+            const isEmpty = list.children.length === 0;
+            if (isEmpty || filter !== (list._lastFilter || '')) {
+                list._lastFilter = filter;
+                list.innerHTML = '';
+                ALL_PATTERNS.forEach((pat, i) => {
+                    if (filter && !pat.title.toLowerCase().includes(filter.toLowerCase())) return;
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.dataset.i = i;
+                    if (combineSelectedPitch && combineSelectedPitch.index === i) card.classList.add('combine-selected');
+                    card.innerHTML = `
+      <div class="play-indicator"></div><div class="progress-bar"></div>
+      <div class="card-header">
+        <span class="card-num">${String(i + 1).padStart(2, '0')}</span>
+        <span class="card-title">${pat.title}</span>
+        <span class="tag ${pat.tag}">${pat.tag.toUpperCase()}</span>
+      </div><canvas class="waveform" width="600" height="150"></canvas>
+      <div class="card-desc">${pat.desc}</div>`;
+                    list.appendChild(card);
+                    drawPitchCurve(card.querySelector('canvas'), pat.notes, tagColors[pat.tag]);
+                    card.addEventListener('click', () => {
+                        list.querySelectorAll('.combine-selected').forEach(el => el.classList.remove('combine-selected'));
+                        card.classList.add('combine-selected');
+                        combineSelectedPitch = { index: i, pat };
+                        document.getElementById('cal-pitch-name').textContent = pat.title;
+                        document.getElementById('cal-pitch').classList.add('has-selection');
+                        updateCombineCanvas(); updateExportBtns();
+                        if (activeCard && document.getElementById('globalPlayBtn').classList.contains('playing')) playCombined();
+                    });
+                });
+            } else {
+                // Just update CSS classes without rebuilding
+                list.querySelectorAll('.combine-selected').forEach(el => el.classList.remove('combine-selected'));
+                if (combineSelectedPitch) {
+                    const sel = [...list.querySelectorAll('.card')].find(c => +c.dataset.i === combineSelectedPitch.index);
+                    if (sel) sel.classList.add('combine-selected');
+                }
+            }
+            const sel = list.querySelector('.combine-selected');
+            if (sel) sel.scrollIntoView({ block: 'nearest' });
+        }
+
+        function buildCombineRhythmList(filter = '') {
+            const list = document.getElementById('combine-rhythm-list');
+            const isEmpty = list.children.length === 0;
+            if (isEmpty || filter !== (list._lastFilter || '')) {
+                list._lastFilter = filter;
+                list.innerHTML = '';
+                ALL_RHYTHMS.forEach((rhy, i) => {
+                    if (filter && !rhy.title.toLowerCase().includes(filter.toLowerCase())) return;
+                    const color = rtagColors[rhy.tag] || '#a02848';
+                    const card = document.createElement('div');
+                    card.className = 'rcard';
+                    card.dataset.i = i;
+                    if (combineSelectedRhythm && combineSelectedRhythm.index === i) card.classList.add('combine-selected');
+                    card.innerHTML = `
+      <div class="rplay-indicator"></div><div class="rprogress-bar"></div>
+      <div class="rcard-header">
+        <span class="rcard-num">${String(i + 1).padStart(2, '0')}</span>
+        <span class="rcard-title">${rhy.title}</span>
+        <span class="rtag ${rhy.tag}">${rhy.tag.toUpperCase()}</span>
+      </div><canvas class="rwave" width="640" height="150"></canvas>
+      <div class="rcard-desc">${rhy.desc}</div>`;
+                    list.appendChild(card);
+                    drawRhythmGrid(card.querySelector('canvas'), rhy.steps, color);
+                    card.addEventListener('click', () => {
+                        list.querySelectorAll('.combine-selected').forEach(el => el.classList.remove('combine-selected'));
+                        card.classList.add('combine-selected');
+                        combineSelectedRhythm = { index: i, rhy };
+                        document.getElementById('cal-rhythm-name').textContent = rhy.title;
+                        document.getElementById('cal-rhythm').classList.add('has-selection');
+                        updateCombineCanvas(); updateExportBtns();
+                        if (activeCard && document.getElementById('globalPlayBtn').classList.contains('playing')) playCombined();
+                    });
+                });
+            } else {
+                list.querySelectorAll('.combine-selected').forEach(el => el.classList.remove('combine-selected'));
+                if (combineSelectedRhythm) {
+                    const sel = [...list.querySelectorAll('.rcard')].find(c => +c.dataset.i === combineSelectedRhythm.index);
+                    if (sel) sel.classList.add('combine-selected');
+                }
+            }
+            const sel = list.querySelector('.combine-selected');
+            if (sel) sel.scrollIntoView({ block: 'nearest' });
+        }
+
+        function buildCombineBreaksList(filter = '') {
+            const list = document.getElementById('combine-breaks-list');
+            if (!list) return;
+            const isEmpty = list.children.length === 0;
+            if (isEmpty || filter !== (list._lastFilter || '')) {
+                list._lastFilter = filter;
+                list.innerHTML = '';
+                BREAKS.forEach((brk, i) => {
+                    if (filter && !brk.name.toLowerCase().includes(filter.toLowerCase())) return;
+                    const card = document.createElement('div');
+                    card.className = 'break-card';
+                    card.dataset.i = i;
+                    if (combineSelectedBreak && combineSelectedBreak.index === i) card.classList.add('combine-selected');
+                    const safeId = brk.name.replace(/\s/g, '_');
+                    card.innerHTML = `
+      <div class="break-play-ind"></div><div class="break-prog"></div>
+      <div class="break-hdr">
+        <span class="break-name">${brk.name}</span>
+        <span class="break-orig">orig ~${brk.orig} BPM</span>
+        <span class="break-bpm-tag">@ ${currentBpm} BPM</span>
+      </div><canvas class="break-canvas" width="640" height="150"></canvas>
+      <div class="break-desc">K&nbsp;&nbsp;Kick &nbsp;&nbsp;·&nbsp;&nbsp; S&nbsp;&nbsp;Snare &nbsp;&nbsp;·&nbsp;&nbsp; HH&nbsp;&nbsp;Hi-Hat &nbsp;&nbsp;·&nbsp;&nbsp; click to audition</div>`;
+                    list.appendChild(card);
+                    drawBreakCanvas(card.querySelector('canvas'), brk.kick, brk.snare, brk.hat, brk.color);
+                    card.addEventListener('click', () => {
+                        list.querySelectorAll('.combine-selected').forEach(el => el.classList.remove('combine-selected'));
+                        card.classList.add('combine-selected');
+                        combineSelectedBreak = { index: i, brk };
+                        document.getElementById('cal-break-name').textContent = brk.name;
+                        document.getElementById('cal-break').classList.add('has-selection');
+                        if (activeCard && document.getElementById('globalPlayBtn').classList.contains('playing')) playCombined();
+                    });
+                });
+            } else {
+                list.querySelectorAll('.combine-selected').forEach(el => el.classList.remove('combine-selected'));
+                if (combineSelectedBreak) {
+                    const sel = [...list.querySelectorAll('.break-card')].find(c => +c.dataset.i === combineSelectedBreak.index);
+                    if (sel) sel.classList.add('combine-selected');
+                }
+            }
+            const sel = list.querySelector('.combine-selected');
+            if (sel) sel.scrollIntoView({ block: 'nearest' });
+        }
+
+        function updateExportBtns() {
+            const ready = !!(combineSelectedPitch && combineSelectedRhythm);
+            document.getElementById('combineMidiBtn').disabled = !ready;
+            document.getElementById('combineClipBtn').disabled = !ready;
+        }
+
+        function buildCombinedSequence(pat, rhy) {
+            SC = buildScale();
+            const notes = resolveNotes(pat.notes);
+            const pitchNotes = notes.filter(n => n.f > 0);
+            if (!pitchNotes.length) return [];
+            const hits = [];
+            rhy.steps.forEach((vel, i) => { if (vel > 0) hits.push({ stepIdx: i, vel }); });
+            return hits.map((hit, h) => {
+                const pn = pitchNotes[h % pitchNotes.length];
+                const np = pitchNotes[(h + 1) % pitchNotes.length];
+                const stepsToNext = h + 1 < hits.length ? hits[h + 1].stepIdx - hit.stepIdx : 999;
+                return {
+                    stepIdx: hit.stepIdx, vel: hit.vel, freq: pn.f,
+                    glide: pn.glide && stepsToNext <= 3, nextFreq: np.f
+                };
+            });
+        }
+
+        function updateCombineCanvas() {
+            if (!combineSelectedPitch || !combineSelectedRhythm) return;
+            const { pat } = combineSelectedPitch, { rhy } = combineSelectedRhythm;
+            const combined = buildCombinedSequence(pat, rhy);
+            const pitchCanvas = document.getElementById('combine-canvas');
+            const rhythmCanvas = document.getElementById('combine-rhythm-canvas');
+            document.getElementById('combine-empty').style.display = 'none';
+            drawCombinedPitchCurve(pitchCanvas, combined, rhy.steps.length);
+            drawCombinedRhythm(rhythmCanvas, combined, rhy.steps, rhy.tag);
+        }
+
+        function drawCombinedPitchCurve(canvas, combined, totalSteps) {
+            const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+            ctx.clearRect(0, 0, W, H);
+            ctx.fillStyle = '#050a0e'; ctx.fillRect(0, 0, W, H);
+            ctx.strokeStyle = 'rgba(20,40,55,0.6)'; ctx.lineWidth = 1;
+            for (let y = 0; y <= H; y += H / 4) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+            for (let x = 0; x <= W; x += W / 8) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+            if (!combined.length) return;
+            const allF = combined.map(h => h.freq);
+            const minF = Math.min(...allF) * .92, maxF = Math.max(...allF) * 1.08;
+            function fToY(f) {
+                const lMin = Math.log2(minF), lMax = Math.log2(maxF);
+                return H - ((Math.log2(f) - lMin) / (lMax - lMin)) * (H * .8) - H * .1;
+            }
+            const sw = W / totalSteps;
+            ctx.fillStyle = 'rgba(192,124,0,0.07)';
+            combined.forEach((hit, h) => {
+                const nxt = combined[h + 1];
+                if (nxt) {
+                    const gapX = (hit.stepIdx + 1) * sw, gapW = (nxt.stepIdx - hit.stepIdx - 1) * sw;
+                    if (gapW > 0) ctx.fillRect(gapX, 0, gapW, H);
+                }
+            });
+            ctx.save(); ctx.shadowBlur = 8; ctx.shadowColor = '#c07c00';
+            ctx.strokeStyle = '#c07c00'; ctx.lineWidth = 2.5;
+            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+            ctx.beginPath();
+            combined.forEach((hit, h) => {
+                const x = hit.stepIdx * sw, y = fToY(hit.freq);
+                if (h === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                if (hit.glide && h + 1 < combined.length) {
+                    const nxt = combined[h + 1];
+                    const nx = nxt.stepIdx * sw, ny = fToY(nxt.freq);
+                    ctx.lineTo(nx, ny);
+                }
+            });
+            ctx.stroke();
+            combined.forEach(hit => {
+                const x = hit.stepIdx * sw, y = fToY(hit.freq);
+                ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = hit.vel < 1 ? 'rgba(192,124,0,.4)' : '#c07c00';
+                ctx.fill();
+            });
+            ctx.restore();
+        }
+
+        function drawCombinedRhythm(canvas, combined, steps, tag) {
+            const color = rtagColors[tag] || '#a02848';
+            const pitchHitIdxs = new Set(combined.map(h => h.stepIdx));
+            const ctx = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+            ctx.clearRect(0, 0, W, H);
+            ctx.fillStyle = '#050a0e'; ctx.fillRect(0, 0, W, H);
+            const N = steps.length, sw = W / N;
+            const barH = H * .7, barY = (H - barH) / 2;
+            for (let i = 0; i < N; i++) {
+                const vel = steps[i]; if (vel <= 0) continue;
+                const hasPitch = pitchHitIdxs.has(i);
+                const x = i * sw + 1, w = sw - 2, h = vel < 1 ? barH * .5 : barH, y = barY + (barH - h);
+                const c = hasPitch ? '#c07c00' : color;
+                ctx.globalAlpha = vel < 1 ? .35 : 1;
+                ctx.fillStyle = c;
+                ctx.shadowBlur = hasPitch ? 8 : 4; ctx.shadowColor = c;
+                ctx.fillRect(x, y, w, h);
+                ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+            }
+        }
+
+        // ── Export ────────────────────────────────────────────────
+        function exportMidi() {
+            if (!combineSelectedPitch || !combineSelectedRhythm) return;
+            const { pat } = combineSelectedPitch, { rhy } = combineSelectedRhythm;
+            const combined = buildCombinedSequence(pat, rhy);
+            const bpm = currentBpm;
+            const ppq = 480;
+            const uSecPerBeat = Math.round(60000000 / bpm);
+            const stepsPerBeat = 4;
+
+            function vlq(n) {
+                if (n < 128) return [n];
+                const bytes = [];
+                let v = n;
+                while (v > 0) { bytes.unshift(v & 0x7f); v >>= 7; }
+                for (let i = 0; i < bytes.length - 1; i++) bytes[i] |= 0x80;
+                return bytes;
+            }
+
+            const events = [];
+            const ticksPerStep = Math.round(ppq / stepsPerBeat);
+
+            combined.forEach(hit => {
+                const tick = hit.stepIdx * ticksPerStep;
+                const noteOn = 69 + Math.round(12 * Math.log2(hit.freq / 440));
+                const vel = hit.vel < 1 ? 50 : 100;
+                const dur = ticksPerStep * 2;
+                events.push({ tick, type: 'noteOn', note: noteOn, vel });
+                events.push({ tick: tick + dur, type: 'noteOff', note: noteOn, vel: 0 });
+            });
+            events.sort((a, b) => a.tick - b.tick || (a.type === 'noteOff' ? -1 : 1));
+
+            const trackBytes = [];
+            let lastTick = 0;
+            trackBytes.push(0x00, 0xFF, 0x51, 0x03, (uSecPerBeat >> 16) & 0xFF, (uSecPerBeat >> 8) & 0xFF, uSecPerBeat & 0xFF);
+
+            events.forEach(ev => {
+                const delta = ev.tick - lastTick; lastTick = ev.tick;
+                trackBytes.push(...vlq(delta));
+                if (ev.type === 'noteOn') trackBytes.push(0x90, ev.note, ev.vel);
+                else trackBytes.push(0x80, ev.note, ev.vel);
+            });
+            trackBytes.push(0, 0xFF, 0x2F, 0);
+
+            const trackLen = trackBytes.length;
+            const header = [
+                0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 6,
+                0, 0, 0, 1,
+                (ppq >> 8) & 0xFF, ppq & 0xFF,
+                0x4D, 0x54, 0x72, 0x6B,
+                (trackLen >> 24) & 0xFF, (trackLen >> 16) & 0xFF, (trackLen >> 8) & 0xFF, trackLen & 0xFF
+            ];
+
+            const bytes = new Uint8Array([...header, ...trackBytes]);
+            const blob = new Blob([bytes], { type: 'audio/midi' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `${pat.title.replace(/\s/g, '_')}_x_${rhy.title.replace(/\s/g, '_')}.mid`;
+            a.click();
+        }
+
+        function copyToClipboard() {
+            if (!combineSelectedPitch || !combineSelectedRhythm) return;
+            const { pat } = combineSelectedPitch, { rhy } = combineSelectedRhythm;
+            const combined = buildCombinedSequence(pat, rhy);
+            const lines = [
+                `NEUROFUNK COMBINE`,
+                `Melody : ${pat.title}  [${pat.tag.toUpperCase()}]`,
+                `Rhythm : ${rhy.title}  [${rhy.tag.toUpperCase()}]`,
+                `BPM    : ${currentBpm}  |  Key: ${keyName(globalSemis)}`,
+                `Steps  : ${rhy.steps.length}`,
+                ``,
+                `Sequence:`,
+                ...combined.map((h, i) => `  ${String(i + 1).padStart(2, '0')}  step ${String(h.stepIdx + 1).padStart(2, '0')}  ${h.freq.toFixed(1)} Hz  vel:${h.vel < 1 ? 'ghost' : 'full'}${h.glide ? ' glide' : ''}`),
+                ``,
+                `Rhythm grid:`,
+                rhy.steps.map(v => v === 0 ? '.' : (v < 1 ? 'o' : '█')).join(''),
+            ];
+            navigator.clipboard.writeText(lines.join('\n'))
+                .then(() => {
+                    const btn = document.getElementById('combineClipBtn');
+                    btn.textContent = '✓ COPIED'; setTimeout(() => btn.textContent = '⎘ COPY', 1500);
+                });
+        }
+
+        // ── Playback ──────────────────────────────────────────────
+        function playCombined() {
+            if (!combineSelectedPitch || !combineSelectedRhythm) return;
+            ensureAudio();
+            const { pat } = combineSelectedPitch, { rhy } = combineSelectedRhythm;
+            masterGain.gain.value = parseFloat(document.querySelector('.vol-slider').value);
+            subGain.gain.value = parseFloat(document.querySelector('.sub-slider').value);
+
+            let { events, totalDur } = combinedEvents(pat, rhy);
+
+            // Merge breakbeat events if a break is selected
+            if (combineSelectedBreak) {
+                const breakEvts = breakEvents(combineSelectedBreak.brk).events;
+                events = events.concat(breakEvts);
+                events.sort((a, b) => a.time - b.time);
+            }
+
+            const btn = document.getElementById('globalPlayBtn');
+            const wrap = document.querySelector('.combine-canvas-wrap');
+            let ph = wrap.querySelector('.playhead');
+            if (!ph) { ph = document.createElement('div'); ph.className = 'playhead'; wrap.appendChild(ph); }
+
+            function animatePH(dur) {
+                const cw = document.getElementById('combine-canvas').offsetWidth;
+                ph.style.transition = 'none'; ph.style.transform = 'translateX(0)';
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    ph.style.transition = `transform ${dur}s linear`;
+                    ph.style.transform = `translateX(${cw}px)`;
+                }));
+            }
+            animatePH(totalDur);
+
+            startLookahead(events, totalDur, btn, null,
+                () => { ph.style.transition = 'none'; ph.style.transform = 'translateX(0)'; },
+                (dur) => animatePH(dur)
+            );
+        }
+
+        function stopCombine() {
+            stopActiveCard();
+            const ph = document.querySelector('.combine-canvas-wrap .playhead');
+            if (ph) { ph.style.transition = 'none'; ph.style.transform = 'translateX(0)'; }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // UI BINDING
+        // ═══════════════════════════════════════════════════════════
+
+        document.querySelector('.bpm-slider').addEventListener('input', function () {
+            currentBpm = parseInt(this.value);
+            document.querySelector('.bpm-val').textContent = this.value;
+            updateBreakBpmTags();
+        });
+
+        document.querySelector('.vol-slider').addEventListener('input', function () {
+            if (masterGain) masterGain.gain.value = parseFloat(this.value);
+        });
+        document.querySelector('.sub-slider').addEventListener('input', function () {
+            if (subGain) subGain.gain.value = parseFloat(this.value);
+        });
+
+        document.querySelectorAll('.loop-btn').forEach(b => b.addEventListener('click', () => {
+            loopEnabled = !loopEnabled;
+            document.querySelectorAll('.loop-btn').forEach(lb => {
+                lb.textContent = loopEnabled ? '↺ LOOP ON' : '↺ LOOP OFF';
+                lb.classList.toggle('active-loop', loopEnabled);
+            });
+        }));
+
+        document.getElementById('globalPlayBtn').addEventListener('click', function () {
+            if (activeCard) {
+                stopActiveCard();
+                stopCombine();
+                return;
+            }
+            const isCombineTab = document.getElementById('tab-combine').classList.contains('active');
+            if (isCombineTab) {
+                playCombined();
+            } else if (lastPlayedFn) {
+                lastPlayedFn();
+            }
+        });
+
+        document.getElementById('gPitch').addEventListener('input', function () {
+            globalSemis = parseInt(this.value);
+            const name = keyName(globalSemis);
+            document.getElementById('pitchDisp').textContent = `${name} (${globalSemis >= 0 ? '+' : ''}${globalSemis})`;
+            SC = buildScale();
+            // Redraw all pitch canvases that have already been drawn (via _redrawFn)
+            document.querySelectorAll('.waveform').forEach(cv => {
+                if (cv._redrawFn) cv._redrawFn();
+            });
+            if (voicePool._rsub) voicePool._rsub.frequency.value = rootHz();
+            updateCombineCanvas();
+        });
+
+        // ── Drive ───────────────────────────────────────────────────────
+        let driveEnabled = false;
+        function makeDriveCurve(amount = 80) {
+            const n = 256, curve = new Float32Array(n);
+            for (let i = 0; i < n; i++) {
+                const x = (i * 2) / n - 1;
+                curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
+            }
+            return curve;
+        }
+        document.getElementById('driveBtn').addEventListener('click', function () {
+            driveEnabled = !driveEnabled;
+            this.textContent = driveEnabled ? 'DRIVE ON' : 'DRIVE';
+            this.classList.toggle('on', driveEnabled);
+            if (voicePool.length) {
+                const curve = driveEnabled ? makeDriveCurve() : null;
+                voicePool.forEach(v => { if (v.wsNode) v.wsNode.curve = curve; });
+            }
+        });
+
+        // ── Tab-grid search (melody + rhythm) ──────────────────────────
+        function hideEmptyDividers(grid) {
+            const kids = [...grid.children];
+            let i = 0;
+            while (i < kids.length) {
+                if (kids[i].classList.contains('vol-divider')) {
+                    const divider = kids[i++];
+                    let hasVisible = false;
+                    while (i < kids.length && !kids[i].classList.contains('vol-divider')) {
+                        if (kids[i].style.display !== 'none') hasVisible = true;
+                        i++;
+                    }
+                    divider.style.display = hasVisible ? '' : 'none';
+                } else { i++; }
+            }
+        }
+        document.getElementById('melSearch').addEventListener('input', function () {
+            const q = this.value.toLowerCase().trim();
+            const grid = document.getElementById('grid-melodies');
+            grid.querySelectorAll('.card').forEach(c => {
+                c.style.display = (!q || c.dataset.title.includes(q) || c.dataset.desc.includes(q)) ? '' : 'none';
+            });
+            if (q) hideEmptyDividers(grid); else
+                grid.querySelectorAll('.vol-divider').forEach(d => d.style.display = '');
+        });
+        document.getElementById('rhySearch').addEventListener('input', function () {
+            const q = this.value.toLowerCase().trim();
+            const grid = document.getElementById('grid-rhythms');
+            grid.querySelectorAll('.rcard').forEach(c => {
+                c.style.display = (!q || c.dataset.title.includes(q) || c.dataset.desc.includes(q)) ? '' : 'none';
+            });
+            if (q) hideEmptyDividers(grid); else
+                grid.querySelectorAll('.vol-divider').forEach(d => d.style.display = '');
+        });
+
+        document.getElementById('gFilter').addEventListener('input', function () {
+            const val = parseInt(this.value);
+            document.getElementById('filterDisp').textContent = `${val} Hz`;
+            if (filterNode) filterNode.frequency.value = val;
+        });
+
+        document.querySelector('.vol-slider').addEventListener('input', function () {
+            if (masterGain) masterGain.gain.value = parseFloat(this.value);
+        });
+        document.querySelector('.sub-slider').addEventListener('input', function () {
+            if (subGain) subGain.gain.value = parseFloat(this.value);
+        });
+
+        document.querySelectorAll('.wave-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.wave-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                setWaveMode(btn.dataset.wave);
+            });
+        });
+
+        document.getElementById('combineMidiBtn').addEventListener('click', exportMidi);
+        document.getElementById('combineClipBtn').addEventListener('click', copyToClipboard);
+
+        document.getElementById('pitchSearch').addEventListener('input', function () { buildCombinePitchList(this.value); });
+        document.getElementById('rhythmSearch').addEventListener('input', function () { buildCombineRhythmList(this.value); });
+        document.getElementById('breakSearch').addEventListener('input', function () { buildCombineBreaksList(this.value); });
+
+        // ── Nudge sliders ─────────────────────────────────────────
+        document.getElementById('gNudgeSub').addEventListener('input', function () {
+            nudgeSubMs = parseInt(this.value);
+            const disp = document.getElementById('nudgeSubDisp');
+            disp.textContent = (nudgeSubMs >= 0 ? (nudgeSubMs === 0 ? '0' : '+' + nudgeSubMs) : nudgeSubMs) + ' ms';
+            disp.className = 'nudge-val' + (nudgeSubMs < 0 ? ' rush' : nudgeSubMs > 0 ? ' late' : '');
+        });
+        document.getElementById('gNudgeGroove').addEventListener('input', function () {
+            nudgeGrooveMs = parseInt(this.value);
+            const disp = document.getElementById('nudgeGrooveDisp');
+            disp.textContent = (nudgeGrooveMs >= 0 ? (nudgeGrooveMs === 0 ? '0' : '+' + nudgeGrooveMs) : nudgeGrooveMs) + ' ms';
+            disp.className = 'nudge-val' + (nudgeGrooveMs < 0 ? ' rush' : nudgeGrooveMs > 0 ? ' late' : '');
+        });
+
+        // ── Neural Dice ───────────────────────────────────────────
+        function rollDice(btn) {
+            btn.classList.remove('rolling');
+            void btn.offsetWidth; // force reflow to restart animation
+            btn.classList.add('rolling');
+            btn.addEventListener('animationend', () => btn.classList.remove('rolling'), { once: true });
+        }
+
+        function randomPitch() {
+            const i = Math.floor(Math.random() * ALL_PATTERNS.length);
+            combineSelectedPitch = { index: i, pat: ALL_PATTERNS[i] };
+            document.getElementById('cal-pitch-name').textContent = ALL_PATTERNS[i].title;
+            document.getElementById('cal-pitch').classList.add('has-selection');
+            buildCombinePitchList(document.getElementById('pitchSearch').value);
+        }
+        function randomRhythm() {
+            const i = Math.floor(Math.random() * ALL_RHYTHMS.length);
+            combineSelectedRhythm = { index: i, rhy: ALL_RHYTHMS[i] };
+            document.getElementById('cal-rhythm-name').textContent = ALL_RHYTHMS[i].title;
+            document.getElementById('cal-rhythm').classList.add('has-selection');
+            buildCombineRhythmList(document.getElementById('rhythmSearch').value);
+        }
+        function randomBreak() {
+            const i = Math.floor(Math.random() * BREAKS.length);
+            combineSelectedBreak = { index: i, brk: BREAKS[i] };
+            document.getElementById('cal-break-name').textContent = BREAKS[i].name;
+            document.getElementById('cal-break').classList.add('has-selection');
+            buildCombineBreaksList(document.getElementById('breakSearch').value);
+        }
+
+        document.getElementById('dicePitchBtn').addEventListener('click', function () {
+            rollDice(this);
+            randomPitch();
+            updateCombineCanvas();
+            updateExportBtns();
+        });
+        document.getElementById('diceRhythmBtn').addEventListener('click', function () {
+            rollDice(this);
+            randomRhythm();
+            updateCombineCanvas();
+            updateExportBtns();
+        });
+        document.getElementById('diceBreakBtn').addEventListener('click', function () {
+            rollDice(this);
+            randomBreak();
+        });
+        document.getElementById('diceAllBtn').addEventListener('click', function () {
+            rollDice(this);
+            randomPitch();
+            randomRhythm();
+            updateCombineCanvas();
+            updateExportBtns();
+            // If already playing, restart with new combo
+            if (activeCard) playCombined();
+        });
+
+        // Update break col subtitle to reflect actual count
+        document.getElementById('breakColSub').textContent = BREAKS.length + ' patterns';
+
+        // \u2500\u2500 Tab observer nudge (item #3 complement) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+        // When a tab is revealed, canvases there become visible — nudge the observer
+        // by temporarily toggling the canvas style so IO fires for them.
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                const page = document.getElementById('tab-' + btn.dataset.tab);
+                page.classList.add('active');
+                // Force pending IO callbacks for newly-visible canvases
+                page.querySelectorAll('canvas[data-pending]').forEach(cv => {
+                    if (cv._drawFn) { cv._drawFn(); delete cv._drawFn; canvasObserver.unobserve(cv); }
+                });
+            });
+        });
+
+        // \u2500\u2500 Item #8: BPM retrigger \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+        document.querySelector('.bpm-slider').addEventListener('change', function () {
+            if (activeCard && lastPlayedFn) lastPlayedFn();
+        });
+
+        // \u2500\u2500 Item #6: Keyboard shortcuts \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+        document.addEventListener('keydown', e => {
+            // Skip if focus is in a text input (search boxes)
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            const bpmSlider = document.querySelector('.bpm-slider');
+            switch (e.code) {
+                case 'Space':         // Play / Stop
+                    e.preventDefault();
+                    if (activeCard) { stopActiveCard(); stopCombine(); }
+                    else if (lastPlayedFn) lastPlayedFn();
+                    break;
+                case 'ArrowRight':    // BPM +1
+                    e.preventDefault();
+                    bpmSlider.value = Math.min(200, parseInt(bpmSlider.value) + 1);
+                    bpmSlider.dispatchEvent(new Event('input'));
+                    bpmSlider.dispatchEvent(new Event('change'));
+                    break;
+                case 'ArrowLeft':     // BPM -1
+                    e.preventDefault();
+                    bpmSlider.value = Math.max(100, parseInt(bpmSlider.value) - 1);
+                    bpmSlider.dispatchEvent(new Event('input'));
+                    bpmSlider.dispatchEvent(new Event('change'));
+                    break;
+                case 'Digit1':        // Waveform: Dual Saw
+                    document.querySelector('[data-wave="dual"]').click(); break;
+                case 'Digit2':        // Waveform: Saw
+                    document.querySelector('[data-wave="saw"]').click(); break;
+                case 'Digit3':        // Waveform: Square
+                    document.querySelector('[data-wave="square"]').click(); break;
+                case 'Digit4':        // Waveform: Sine
+                    document.querySelector('[data-wave="sine"]').click(); break;
+                case 'KeyL':          // Toggle Loop
+                    document.querySelector('.loop-btn').click(); break;
+            }
+            saveState();
+        });
+
+        // \u2500\u2500 Item #4 (adjusted priority): Save / Restore State \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+        const STATE_KEY = 'nbs_state_v1';
+        function saveState() {
+            const state = {
+                bpm: parseInt(document.querySelector('.bpm-slider').value),
+                semis: globalSemis,
+                wave: currentWave,
+                loop: loopEnabled,
+                nudgeSub: nudgeSubMs,
+                nudgeGroove: nudgeGrooveMs,
+                vol: parseFloat(document.querySelector('.vol-slider').value),
+                sub: parseFloat(document.querySelector('.sub-slider').value),
+                cPitch: combineSelectedPitch ? combineSelectedPitch.index : null,
+                cRhythm: combineSelectedRhythm ? combineSelectedRhythm.index : null,
+                cBreak: combineSelectedBreak ? combineSelectedBreak.index : null,
+            };
+            try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (_) { }
+        }
+
+        function restoreState() {
+            let state;
+            try { state = JSON.parse(localStorage.getItem(STATE_KEY)); } catch (_) { }
+            if (!state) return;
+
+            // BPM
+            if (state.bpm) {
+                const sl = document.querySelector('.bpm-slider');
+                sl.value = state.bpm; currentBpm = state.bpm;
+                document.querySelector('.bpm-val').textContent = state.bpm;
+            }
+            // Key
+            if (state.semis !== undefined) {
+                globalSemis = state.semis;
+                const sl = document.getElementById('gPitch');
+                sl.value = state.semis;
+                document.getElementById('pitchDisp').textContent = keyName(state.semis) + ' (' + state.semis + ')';
+            }
+            // Waveform
+            if (state.wave) {
+                currentWave = state.wave;
+                document.querySelectorAll('.wave-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.wave === state.wave);
+                });
+            }
+            // Loop
+            if (state.loop !== undefined && !state.loop) {
+                loopEnabled = false;
+                document.querySelectorAll('.loop-btn').forEach(lb => {
+                    lb.textContent = '↺ LOOP OFF'; lb.classList.remove('active-loop');
+                });
+            }
+            // Nudge
+            if (state.nudgeSub !== undefined) {
+                nudgeSubMs = state.nudgeSub;
+                const sl = document.getElementById('gNudgeSub');
+                if (sl) { sl.value = state.nudgeSub; sl.dispatchEvent(new Event('input')); }
+            }
+            if (state.nudgeGroove !== undefined) {
+                nudgeGrooveMs = state.nudgeGroove;
+                const sl = document.getElementById('gNudgeGroove');
+                if (sl) { sl.value = state.nudgeGroove; sl.dispatchEvent(new Event('input')); }
+            }
+            // Volume / Sub
+            if (state.vol !== undefined) document.querySelector('.vol-slider').value = state.vol;
+            if (state.sub !== undefined) document.querySelector('.sub-slider').value = state.sub;
+
+            // Combine selections
+            if (state.cPitch != null && ALL_PATTERNS[state.cPitch]) {
+                combineSelectedPitch = { index: state.cPitch, pat: ALL_PATTERNS[state.cPitch] };
+                document.getElementById('cal-pitch-name').textContent = ALL_PATTERNS[state.cPitch].title;
+                document.getElementById('cal-pitch').classList.add('has-selection');
+            }
+            if (state.cRhythm != null && ALL_RHYTHMS[state.cRhythm]) {
+                combineSelectedRhythm = { index: state.cRhythm, rhy: ALL_RHYTHMS[state.cRhythm] };
+                document.getElementById('cal-rhythm-name').textContent = ALL_RHYTHMS[state.cRhythm].title;
+                document.getElementById('cal-rhythm').classList.add('has-selection');
+            }
+            if (state.cBreak != null && BREAKS[state.cBreak]) {
+                combineSelectedBreak = { index: state.cBreak, brk: BREAKS[state.cBreak] };
+                document.getElementById('cal-break-name').textContent = BREAKS[state.cBreak].name;
+                document.getElementById('cal-break').classList.add('has-selection');
+            }
+            if (combineSelectedPitch && combineSelectedRhythm) {
+                updateCombineCanvas(); updateExportBtns();
+            }
+        }
+
+        // Auto-save on every meaningful interaction
+        ['input', 'change'].forEach(ev => {
+            document.querySelector('.bpm-slider').addEventListener(ev, saveState);
+            document.getElementById('gPitch').addEventListener(ev, saveState);
+            document.getElementById('gNudgeSub').addEventListener(ev, saveState);
+            document.getElementById('gNudgeGroove').addEventListener(ev, saveState);
+            document.querySelector('.vol-slider').addEventListener(ev, saveState);
+            document.querySelector('.sub-slider').addEventListener(ev, saveState);
+        });
+        document.querySelectorAll('.wave-btn').forEach(b => b.addEventListener('click', saveState));
+        document.querySelectorAll('.loop-btn').forEach(b => b.addEventListener('click', saveState));
+        document.getElementById('diceAllBtn').addEventListener('click', saveState);
+
+        // ═══════════════════════════════════════════════════════════
+        // INIT
+        // ═══════════════════════════════════════════════════════════
+        buildPitchGrid('grid-melodies', PATTERNS1, 0, '── VOL. 1  ·  01–20 ──────────────────────────');
+        buildPitchGrid('grid-melodies', PATTERNS2, 20, '── VOL. 2  ·  21–40 ──────────────────────────');
+        buildPitchGrid('grid-melodies', PATTERNS3, 40, '── VOL. 3  ·  41–60 ──────────────────────────');
+        buildPitchGrid('grid-melodies', PATTERNS4, 60, '── VOL. 4  ·  61–80 ──────────────────────────');
+        buildPitchGrid('grid-melodies', PATTERNS5, 80, '── VOL. 5  ·  81–100 ────────────────────────');
+
+        buildRhythmGrid('grid-rhythms', RHYTHMS1, 0, '── VOL. 1  ·  01–20 ──────────────────────────');
+        buildRhythmGrid('grid-rhythms', RHYTHMS2, 20, '── VOL. 2  ·  21–40 ──────────────────────────');
+        buildRhythmGrid('grid-rhythms', RHYTHMS3, 40, '── VOL. 3  ·  41–60 ──────────────────────────');
+        buildRhythmGrid('grid-rhythms', RHYTHMS4, 60, '── VOL. 4  ·  61–80 ──────────────────────────');
+
+        buildBreaks();
+
+        buildCombinePitchList();
+        buildCombineRhythmList();
+        buildCombineBreaksList();
+        restoreState();   // Restore saved settings from localStorage
+
+        // ═══════════════════════════════════════════════════════════
+        // CATHODE WARM-UP
+        // ═══════════════════════════════════════════════════════════
+        window.addEventListener('load', () => {
+            if (typeof gsap === 'undefined') {
+                document.querySelectorAll('.cathode').forEach(el => el.style.opacity = '1');
+                return;
+            }
+            const tl = gsap.timeline();
+            tl.set('.cathode', { opacity: 0, filter: 'brightness(0)' })
+                .to('.cathode', { duration: 0.08, opacity: 0.9, filter: 'brightness(3)', stagger: { each: 0.05, from: 'start' }, ease: 'none' })
+                .to('.cathode', { duration: 0.05, opacity: 0.2, stagger: { each: 0.05, from: 'start' }, ease: 'none' }, '<0.04')
+                .to('.cathode', { duration: 0.12, opacity: 1, filter: 'brightness(1.15)', stagger: { each: 0.04, from: 'start' }, ease: 'power2.out' }, '<0.02')
+                .to('.cathode', { duration: 0.08, opacity: 0.7, stagger: { each: 0.03, from: 'start' }, ease: 'none' }, '<0.06')
+                .to('.cathode', { duration: 0.3, opacity: 1, filter: 'brightness(1)', stagger: { each: 0.04, from: 'start' }, ease: 'power1.out' }, '<0.02');
+        });
+
+    </script>
+</body>
+
+</html>

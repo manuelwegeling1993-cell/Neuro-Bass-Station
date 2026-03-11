@@ -619,7 +619,10 @@
 
         .combine-list .card.combine-selected,
         .combine-list .rcard.combine-selected,
-        .combine-list .break-card.combine-selected {
+        .combine-list .break-card.combine-selected,
+        .pitch-grid .card.combine-selected,
+        .rhythm-grid .rcard.combine-selected,
+        .breaks-grid .break-card.combine-selected {
             background: #0a1520;
             border-color: #c07c00;
             border-left-width: 4px;
@@ -2148,15 +2151,17 @@
                 grid.appendChild(div);
             }
             patterns.forEach((pat, i) => {
+                const globalIdx = offset + i;
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.dataset.title = pat.title.toLowerCase();
                 card.dataset.desc = (pat.desc || '').toLowerCase();
+                card.dataset.combidx = globalIdx;
                 card.innerHTML = `
       <div class="play-indicator"></div>
       <div class="progress-bar"></div>
       <div class="card-header">
-        <span class="card-num">${String(i + 1 + offset).padStart(2, '0')}</span>
+        <span class="card-num">${String(globalIdx + 1).padStart(2, '0')}</span>
         <span class="card-title">${pat.title}</span>
         <span class="tag ${pat.tag}">${pat.tag.toUpperCase()}</span>
       </div>
@@ -2165,13 +2170,22 @@
                 grid.appendChild(card);
                 const cv = card.querySelector('canvas');
                 const redraw = () => drawPitchCurve(cv, pat.notes, tagColors[pat.tag]);
-                cv._redrawFn = redraw; // kept permanently for key-change redraws
-                cv._drawFn = redraw;   // consumed by IntersectionObserver on first view
+                cv._redrawFn = redraw;
+                cv._drawFn = redraw;
                 canvasObserver.observe(cv);
                 const prog = card.querySelector('.progress-bar');
                 card.addEventListener('click', () => {
-                    if (activeCard && activeCard.el === card) stopActiveCard();
-                    else { lastPlayedFn = () => playPitchCard(pat, card, prog); playPitchCard(pat, card, prog); }
+                    // Play / stop
+                    if (activeCard && activeCard.el === card) { stopActiveCard(); return; }
+                    lastPlayedFn = () => playPitchCard(pat, card, prog);
+                    playPitchCard(pat, card, prog);
+                    // Sync to combine
+                    markTabCard('grid-melodies', 'card', globalIdx);
+                    combineSelectedPitch = { index: globalIdx, pat };
+                    document.getElementById('cal-pitch-name').textContent = pat.title;
+                    document.getElementById('cal-pitch').classList.add('has-selection');
+                    buildCombinePitchList(document.getElementById('pitchSearch').value);
+                    updateCombineCanvas(); updateExportBtns();
                 });
             });
         }
@@ -2185,16 +2199,18 @@
                 grid.appendChild(div);
             }
             rhythms.forEach((rhy, i) => {
+                const globalIdx = offset + i;
                 const color = rtagColors[rhy.tag] || '#a02848';
                 const card = document.createElement('div');
                 card.className = 'rcard';
                 card.dataset.title = rhy.title.toLowerCase();
                 card.dataset.desc = (rhy.desc || '').toLowerCase();
+                card.dataset.combidx = globalIdx;
                 card.innerHTML = `
       <div class="rplay-indicator"></div>
       <div class="rprogress-bar"></div>
       <div class="rcard-header">
-        <span class="rcard-num">${String(i + 1 + offset).padStart(2, '0')}</span>
+        <span class="rcard-num">${String(globalIdx + 1).padStart(2, '0')}</span>
         <span class="rcard-title">${rhy.title}</span>
         <span class="rtag ${rhy.tag}">${rhy.tag.toUpperCase()}</span>
       </div>
@@ -2206,17 +2222,27 @@
                 canvasObserver.observe(cv);
                 const prog = card.querySelector('.rprogress-bar');
                 card.addEventListener('click', () => {
-                    if (activeCard && activeCard.el === card) stopActiveCard();
-                    else { lastPlayedFn = () => playRhythmCard(rhy, card, prog); playRhythmCard(rhy, card, prog); }
+                    // Play / stop
+                    if (activeCard && activeCard.el === card) { stopActiveCard(); return; }
+                    lastPlayedFn = () => playRhythmCard(rhy, card, prog);
+                    playRhythmCard(rhy, card, prog);
+                    // Sync to combine
+                    markTabCard('grid-rhythms', 'rcard', globalIdx);
+                    combineSelectedRhythm = { index: globalIdx, rhy };
+                    document.getElementById('cal-rhythm-name').textContent = rhy.title;
+                    document.getElementById('cal-rhythm').classList.add('has-selection');
+                    buildCombineRhythmList(document.getElementById('rhythmSearch').value);
+                    updateCombineCanvas(); updateExportBtns();
                 });
             });
         }
 
         function buildBreaks() {
             const grid = document.getElementById('breaks-grid');
-            BREAKS.forEach(brk => {
+            BREAKS.forEach((brk, i) => {
                 const card = document.createElement('div');
                 card.className = 'break-card';
+                card.dataset.combidx = i;
                 const safeId = brk.name.replace(/\s/g, '_');
                 card.innerHTML = `
       <div class="break-play-ind"></div>
@@ -2234,10 +2260,26 @@
                 canvasObserver.observe(cv);
                 const prog = card.querySelector('.break-prog');
                 card.addEventListener('click', () => {
-                    if (activeCard && activeCard.el === card) stopActiveCard();
-                    else playBreakCard(brk, card, prog);
+                    // Play / stop
+                    if (activeCard && activeCard.el === card) { stopActiveCard(); return; }
+                    playBreakCard(brk, card, prog);
+                    // Sync to combine
+                    markTabCard('breaks-grid', 'break-card', i);
+                    combineSelectedBreak = { index: i, brk };
+                    document.getElementById('cal-break-name').textContent = brk.name;
+                    document.getElementById('cal-break').classList.add('has-selection');
+                    buildCombineBreaksList(document.getElementById('breakSearch').value);
                 });
             });
+        }
+
+        // Mark a card in an individual tab as combine-selected
+        function markTabCard(gridId, cardClass, globalIdx) {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+            grid.querySelectorAll('.' + cardClass).forEach(c => c.classList.remove('combine-selected'));
+            const target = [...grid.querySelectorAll('.' + cardClass)].find(c => +c.dataset.combidx === globalIdx);
+            if (target) target.classList.add('combine-selected');
         }
 
         function updateBreakBpmTags() {
@@ -2785,6 +2827,7 @@
             document.getElementById('cal-pitch-name').textContent = ALL_PATTERNS[i].title;
             document.getElementById('cal-pitch').classList.add('has-selection');
             buildCombinePitchList(document.getElementById('pitchSearch').value);
+            markTabCard('grid-melodies', 'card', i);
         }
         function randomRhythm() {
             const i = Math.floor(Math.random() * ALL_RHYTHMS.length);
@@ -2792,6 +2835,7 @@
             document.getElementById('cal-rhythm-name').textContent = ALL_RHYTHMS[i].title;
             document.getElementById('cal-rhythm').classList.add('has-selection');
             buildCombineRhythmList(document.getElementById('rhythmSearch').value);
+            markTabCard('grid-rhythms', 'rcard', i);
         }
         function randomBreak() {
             const i = Math.floor(Math.random() * BREAKS.length);
@@ -2799,6 +2843,7 @@
             document.getElementById('cal-break-name').textContent = BREAKS[i].name;
             document.getElementById('cal-break').classList.add('has-selection');
             buildCombineBreaksList(document.getElementById('breakSearch').value);
+            markTabCard('breaks-grid', 'break-card', i);
         }
 
         document.getElementById('dicePitchBtn').addEventListener('click', function () {
